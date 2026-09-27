@@ -85,7 +85,7 @@ resource "helm_release" "temporal" {
   chart            = "temporal"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/temporal-values.yaml")]
+  values = [file("${path.module}/../values/temporal-values.yaml")]
   depends_on = [helm_release.temporal_postgresql]
 }
 
@@ -98,7 +98,7 @@ resource "helm_release" "redpanda" {
   chart            = "redpanda"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/redpanda-values.yaml")]
+  values = [file("${path.module}/../values/redpanda-values.yaml")]
 }
 
 # ==============================================================================
@@ -110,7 +110,7 @@ resource "helm_release" "benthos" {
   chart            = "benthos"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/benthos-values.yaml")]
+  values = [file("${path.module}/../values/benthos-values.yaml")]
   depends_on = [helm_release.redpanda]
 }
 
@@ -120,7 +120,7 @@ resource "helm_release" "risingwave" {
   chart            = "risingwave"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/risingwave-values.yaml")]
+  values = [file("${path.module}/../values/risingwave-values.yaml")]
 }
 
 # ==============================================================================
@@ -132,7 +132,7 @@ resource "helm_release" "starrocks" {
   chart            = "kube-starrocks"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/starrocks-values.yaml")]
+  values = [file("${path.module}/../values/starrocks-values.yaml")]
 }
 
 resource "helm_release" "feast" {
@@ -141,7 +141,7 @@ resource "helm_release" "feast" {
   chart            = "feast"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/feast-values.yaml")]
+  values = [file("${path.module}/../values/feast-values.yaml")]
   depends_on = [helm_release.starrocks, helm_release.risingwave]
 }
 
@@ -154,7 +154,7 @@ resource "helm_release" "metabase" {
   chart            = "metabase"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/metabase-values.yaml")]
+  values = [file("${path.module}/../values/metabase-values.yaml")]
   depends_on = [helm_release.starrocks]
 }
 
@@ -167,7 +167,7 @@ resource "helm_release" "prometheus" {
   chart            = "prometheus"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/prometheus-values.yaml")]
+  values = [file("${path.module}/../values/prometheus-values.yaml")]
 }
 
 resource "helm_release" "grafana" {
@@ -176,7 +176,7 @@ resource "helm_release" "grafana" {
   chart            = "grafana"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/grafana-values.yaml")]
+  values = [file("${path.module}/../values/grafana-values.yaml")]
 }
 
 # ==============================================================================
@@ -189,7 +189,7 @@ resource "helm_release" "redis" {
   version    = "19.6.1"
   namespace  = kubernetes_namespace.data_stack.metadata[0].name
 
-  values = [file("${path.module}/values/redis-values.yaml")]
+  values = [file("${path.module}/../values/redis-values.yaml")]
 }
 
 resource "helm_release" "mlflow" {
@@ -198,7 +198,7 @@ resource "helm_release" "mlflow" {
   chart            = "mlflow"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/mlflow-values.yaml")]
+  values = [file("${path.module}/../values/mlflow-values.yaml")]
 }
 
 resource "helm_release" "bentoml" {
@@ -207,7 +207,7 @@ resource "helm_release" "bentoml" {
   chart            = "bentoml"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/bentoml-values.yaml")]
+  values = [file("${path.module}/../values/bentoml-values.yaml")]
 }
 
 # ==============================================================================
@@ -273,7 +273,7 @@ resource "helm_release" "redpanda_console" {
   chart            = "console"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
-  values = [file("${path.module}/values/redpanda-console-values.yaml")]
+  values = [file("${path.module}/../values/redpanda-console-values.yaml")]
   depends_on = [helm_release.redpanda]
 }
 
