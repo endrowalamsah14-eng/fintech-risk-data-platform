@@ -16,7 +16,7 @@ pg_conn = psycopg2.connect(
 )
 pg_cursor = pg_conn.cursor()
 
-mongo_client = MongoClient("mongodb://localhost:27017/?replicaSet=epocket-rs")
+mongo_client = MongoClient("mongodb://localhost:27017/?directConnection=true")
 mongo_db = mongo_client["epocket_state"]
 payment_intents_collection = mongo_db["payment_intents"]
 
