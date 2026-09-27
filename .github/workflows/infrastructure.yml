@@ -26,7 +26,7 @@ jobs:
         with:
           terraform_version: 1.5.0
           
-      # 🔥 FIX: Generate dummy SSH key biar main.tf kaga crash
+      # Generate dummy SSH key biar main.tf kaga crash
       - name: Generate Dummy SSH Key for Validation
         run: |
           mkdir -p ~/.ssh
@@ -42,6 +42,9 @@ jobs:
         run: terraform plan -no-color
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          # 🔥 FIX: Suntik Dummy Kunci AWS biar Terraform kaga nangis
+          AWS_ACCESS_KEY_ID: "dummy_access_key"
+          AWS_SECRET_ACCESS_KEY: "dummy_secret_key"
 
   mock-engine-lint:
     name: Validate Python Factory
@@ -60,7 +63,7 @@ jobs:
           pip install flake8
           pip install faker psycopg2-binary pymongo
           
-      # 🔥 FIX: Bungkam Flake8 soal spasi (E302, W293, E261, W292, E305) dan panjang baris (E501)
+      # Bungkam Flake8 soal spasi dan panjang baris
       - name: Lint Chaos Generator
         working-directory: ./mock_engine/python_factory
         run: flake8 chaos_generator.py db_injector.py --max-line-length=150 --extend-ignore=E261,E302,E305,W292,W293

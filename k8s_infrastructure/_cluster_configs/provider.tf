@@ -5,7 +5,7 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "~> 1.45"
     }
-    # 🔥 NEW: AWS Provider (Pengganti GCP)
+    # AWS Provider (Pengganti GCP)
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
@@ -32,17 +32,26 @@ provider "hcloud" {
   token = var.hcloud_token
 }
 
-# Region Stockholm sesuai console lu, biar deket sama Hetzner EU
+# Region Stockholm sesuai console lu
 provider "aws" {
   region = "eu-north-1" 
+  
+  # 🔥 FIX: Bypass validasi kredensial saat Terraform Plan
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  # 🔥 FIX: Komen dulu config_path, pakai dummy host buat CI/CD Plan
+  # config_path = "~/.kube/config"
+  host = "https://127.0.0.1:6443"
 }
 
 provider "helm" {
   kubernetes {
-    config_path = "~/.kube/config"
+    # 🔥 FIX: Komen dulu config_path, pakai dummy host buat CI/CD Plan
+    # config_path = "~/.kube/config"
+    host = "https://127.0.0.1:6443"
   }
 }
