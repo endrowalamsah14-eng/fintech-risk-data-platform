@@ -1,7 +1,6 @@
 # =====================================================================
 # METABASE VALUES - BUSINESS INTELLIGENCE (HETZNER VPS OPTIMIZED)
 # =====================================================================
-
 replicaCount: 1
 
 resources:
@@ -16,7 +15,6 @@ extraEnv:
   - name: JAVA_OPTS
     value: "-Xmx768m"
 
-# Expose Metabase UI via NodePort for direct access via Hetzner IP
 service:
   type: NodePort
   port: 80

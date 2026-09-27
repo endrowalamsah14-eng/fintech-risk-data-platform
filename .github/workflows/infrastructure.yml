@@ -1,0 +1,60 @@
+name: ZONA 0 - UDS Infrastructure CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan & K8s Validation
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./k8s_infrastructure/_cluster_configs
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        # Memastikan tidak ada error sintaks sebelum di-apply ke Hetzner
+        run: terraform plan -no-color
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+
+  mock-engine-lint:
+    name: Validate Python Factory
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install Dependencies
+        run: |
+          pip install flake8
+          pip install faker psycopg2-binary pymongo
+          
+      - name: Lint Chaos Generator
+        working-directory: ./mock_engine/python_factory
+        run: flake8 chaos_generator.py db_injector.py

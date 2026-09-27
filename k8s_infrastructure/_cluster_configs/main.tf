@@ -4,9 +4,9 @@ resource "hcloud_ssh_key" "k8s_admin" {
 }
 
 resource "hcloud_server" "k8s_production" {
-  name        = "emarkrtz-k8s-prod"
+  name        = "uds-k8s-prod" # 🔥 Rebranding
   image       = "ubuntu-24.04"
-  server_type = "cpx42" # 🔥 8 vCPU, 16GB RAM
+  server_type = "cpx42" # 8 vCPU, 16GB RAM
   location    = "nbg1"
   ssh_keys    = [hcloud_ssh_key.k8s_admin.id]
 
@@ -66,9 +66,6 @@ resource "hcloud_server" "k8s_production" {
     kubectl taint nodes --all node-role.kubernetes.io/control-plane-
   EOF
 
-  # =================================================================
-  # THE HOTFIX: Preventing Terraform from deleting servers due to script changes
-  # =================================================================
   lifecycle {
     ignore_changes = [
       user_data,
@@ -77,6 +74,6 @@ resource "hcloud_server" "k8s_production" {
 }
 
 output "k8s_public_ip" {
-  description = "Public IP of the K8s Production & Simulator"
+  description = "Public IP of the K8s Production Node"
   value       = hcloud_server.k8s_production.ipv4_address
 }

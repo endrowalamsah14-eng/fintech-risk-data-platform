@@ -1,0 +1,12 @@
+# =====================================================================
+# REDPANDA CONSOLE VALUES - THE DASHBOARD
+# =====================================================================
+console:
+  config:
+    kafka:
+      # Nembak ke broker utama di namespace uds-production
+      brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
+
+service:
+  type: NodePort
+  nodePort: 30080

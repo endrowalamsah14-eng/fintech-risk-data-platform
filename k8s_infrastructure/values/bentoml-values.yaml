@@ -1,0 +1,22 @@
+# =====================================================================
+# BENTOML SERVING VALUES (XGBOOST FRAUD DETECTION)
+# =====================================================================
+deployment:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+runners:
+  # Limit runner XGBoost biar kaga rakus CPU
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi

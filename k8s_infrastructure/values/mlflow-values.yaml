@@ -1,0 +1,24 @@
+# =====================================================================
+# MLFLOW MODEL REGISTRY VALUES
+# =====================================================================
+backendStore:
+  postgres:
+    enabled: true
+    persistence:
+      size: 2Gi
+      storageClass: "local-path"
+
+artifactRoot:
+  # Langsung nembak ke AWS S3 bucket lu
+  s3:
+    enabled: true
+    bucket: "uds-enterprise-datalake-2026"
+    path: "mlflow-artifacts"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

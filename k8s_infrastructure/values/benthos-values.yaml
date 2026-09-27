@@ -1,44 +1,38 @@
 # =====================================================================
 # BENTHOS VALUES - THE DATA CONTRACT & ROUTER (BLUEPRINT 2.0)
 # =====================================================================
-
-replicaCount: 2
+replicaCount: 1
 
 resources:
   requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
     cpu: 500m
     memory: 512Mi
-  limits:
-    cpu: 1
-    memory: 1Gi
 
-# ---------------------------------------------------------------------
-# PIPELINE CONFIGURATION
-# ---------------------------------------------------------------------
 config:
   input:
     kafka_franz:
-      seed_brokers: ["redpanda-0.redpanda.emarkrtz-production.svc.cluster.local:9092"]
+      seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
       topics:
-        - "cdc.all_shards.orders"
-        - "cdc.all_shards.order_lines"
+        - "epocket.transactions"
+        - "epocket.audit_logs"
       consumer_group: "benthos-router-group"
 
   pipeline:
     processors:
       # 1. Validasi Skema (Data Contract)
       - mapping: |
-          root._contract_error = if this.store_id == null {
-            "missing_store_id"
-          } else if this.order_id == null {
-            "missing_order_id"
-          } else if meta("kafka_topic") == "cdc.all_shards.order_lines" && this.line_id == null {
-            "missing_line_id"
+          root._contract_error = if this.transaction_id == null {
+            "missing_transaction_id"
+          } else if this.user_id == null {
+            "missing_user_id"
           } else {
             deleted()
           }
-
-      # 2. Penyematan Metadata & Flattening
+      
+      # 2. Penyematan Metadata
       - mapping: |
           root = this
           root.contract_error = this._contract_error
@@ -47,38 +41,30 @@ config:
   output:
     switch:
       cases:
-        # -------------------------------------------------------------
         # JALUR KARANTINA: Data Cacat -> DLQ Redpanda
-        # -------------------------------------------------------------
         - check: this._contract_error != null
           output:
             kafka_franz:
-              seed_brokers: ["redpanda-0.redpanda.emarkrtz-production.svc.cluster.local:9092"]
-              topic: "dlq.ingestion_errors"
+              seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
+              topic: "dlq.epocket_errors"
 
-        # -------------------------------------------------------------
-        # JALUR 1 (HOT OPERATIONAL): Orders -> Redis K8s (In-Memory)
-        # -------------------------------------------------------------
-        - check: meta("kafka_topic") == "cdc.all_shards.orders"
+        # JALUR HOT OPERATIONAL: Transactions -> Redis K8s
+        - check: meta("kafka_topic") == "epocket.transactions"
           output:
             redis_hash:
-              url: "redis://redis-master.emarkrtz-production.svc.cluster.local:6379"
-              key: 'order:${! json("order_id") }'
+              url: "redis://redis-master.uds-production.svc.cluster.local:6379"
+              key: 'trx:${! json("transaction_id") }'
               walk_metadata: false
               walk_json_object: true
 
-        # -------------------------------------------------------------
-        # JALUR 3 (ENTERPRISE LAKEHOUSE): Order Lines -> Serverless GCS
-        # -------------------------------------------------------------
-        - check: meta("kafka_topic") == "cdc.all_shards.order_lines"
+        # JALUR ENTERPRISE LAKEHOUSE: Audit Logs -> AWS S3 (Iceberg Ready)
+        - check: meta("kafka_topic") == "epocket.audit_logs"
           output:
-            gcp_cloud_storage:
-              project: "emarkrtz-data-engine"
-              bucket: "emarkrtz-enterprise-datalake-2026"
-              # Path dinamis berdasarkan tanggal (Partisi Otomatis)
-              path: 'order_lines/date=${! timestamp("2006-01-02") }/${! uuid_v4() }.json'
+            aws_s3:
+              bucket: "uds-enterprise-datalake-2026"
+              region: "eu-north-1"
+              path: 'audit_logs/date=${! timestamp("2006-01-02") }/${! uuid_v4() }.json'
               max_in_flight: 64
-              # Batching 500 baris atau 5 detik sebelum dikirim (Cost-Ops)
               batching:
                 count: 500
                 period: "5s"

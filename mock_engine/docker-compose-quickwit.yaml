@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # NODE 1 (Seed / Master / UI)
+  qw-node-1:
+    image: quickwit/quickwit:latest
+    container_name: qw-node-1
+    command: ["run"]
+    environment:
+      - QW_NODE_ID=qw-node-1
+      - QW_PEER_SEEDS=qw-node-1:7281
+    ports:
+      - "7280:7280"
+      - "7281:7281"
+    volumes:
+      - qw-data-shared:/quickwit/qwdata
+    networks:
+      - zona1-network
+
+  # NODE 2 (Worker)
+  qw-node-2:
+    image: quickwit/quickwit:latest
+    container_name: qw-node-2
+    command: ["run"]
+    environment:
+      - QW_NODE_ID=qw-node-2
+      - QW_PEER_SEEDS=qw-node-1:7281
+    ports:
+      - "7282:7280"
+    volumes:
+      - qw-data-shared:/quickwit/qwdata
+    networks:
+      - zona1-network
+    depends_on:
+      - qw-node-1
+
+  # NODE 3 (Worker)
+  qw-node-3:
+    image: quickwit/quickwit:latest
+    container_name: qw-node-3
+    command: ["run"]
+    environment:
+      - QW_NODE_ID=qw-node-3
+      - QW_PEER_SEEDS=qw-node-1:7281
+    ports:
+      - "7283:7280"
+    volumes:
+      - qw-data-shared:/quickwit/qwdata
+    networks:
+      - zona1-network
+    depends_on:
+      - qw-node-1
+
+volumes:
+  qw-data-shared: 
+
+networks:
+  zona1-network:
+    external: true
