@@ -200,6 +200,7 @@ resource "helm_release" "mlflow" {
   repository       = "https://community-charts.github.io/helm-charts"
   chart            = "mlflow"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
   
   values = [file("${path.module}/../values/mlflow-values.yaml")]
 }
@@ -209,6 +210,7 @@ resource "helm_release" "bentoml" {
   repository       = "https://bentoml.github.io/helm-charts" 
   chart            = "yatai" # 🔥 FIX: Nama chart yang benar di repositori BentoML adalah yatai
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
   
   values = [file("${path.module}/../values/bentoml-values.yaml")]
 }
@@ -275,6 +277,7 @@ resource "helm_release" "redpanda_console" {
   repository       = "https://charts.redpanda.com"
   chart            = "console"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
   
   values = [file("${path.module}/../values/redpanda-console-values.yaml")]
   depends_on = [helm_release.redpanda]

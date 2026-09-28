@@ -4,7 +4,10 @@
 backendStore:
   postgres:
     enabled: true
-
+    user: "mlflow_admin"
+    password: "mlflow_super_secret"
+    database: "mlflow_db"
+    
 artifactRoot:
   # Langsung nembak ke AWS S3 bucket lu
   s3:
