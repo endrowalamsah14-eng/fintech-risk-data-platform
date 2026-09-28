@@ -4,9 +4,6 @@
 backendStore:
   postgres:
     enabled: true
-    persistence:
-      size: 2Gi
-      storageClass: "local-path"
 
 artifactRoot:
   # Langsung nembak ke AWS S3 bucket lu
