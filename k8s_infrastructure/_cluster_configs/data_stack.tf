@@ -109,6 +109,7 @@ resource "helm_release" "benthos" {
   repository       = "https://benthosdev.github.io/charts"
   chart            = "benthos"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit agar tidak context deadline exceeded
   
   values = [file("${path.module}/../values/benthos-values.yaml")]
   depends_on = [helm_release.redpanda]
@@ -135,15 +136,17 @@ resource "helm_release" "starrocks" {
   values = [file("${path.module}/../values/starrocks-values.yaml")]
 }
 
-resource "helm_release" "feast" {
-  name             = "feast"
-  repository       = "https://feast-dev.github.io/feast-helm-charts"
-  chart            = "feast"
-  namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  
-  values = [file("${path.module}/../values/feast-values.yaml")]
-  depends_on = [helm_release.starrocks, helm_release.risingwave]
-}
+# 🔥 FIX: Repository Helm Feast sudah dihapus/mati (404 Not Found) dari sisi developer. 
+# Daripada pipeline CI/CD lu gagal total, eksekusi ini di-comment sementara.
+# resource "helm_release" "feast" {
+#   name             = "feast"
+#   repository       = "https://feast-dev.github.io/feast-helm-charts"
+#   chart            = "feast"
+#   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+#   
+#   values = [file("${path.module}/../values/feast-values.yaml")]
+#   depends_on = [helm_release.starrocks, helm_release.risingwave]
+# }
 
 # ==============================================================================
 # 5. BUSINESS INTELLIGENCE & VISUALIZATION
@@ -204,7 +207,7 @@ resource "helm_release" "mlflow" {
 resource "helm_release" "bentoml" {
   name             = "bentoml"
   repository       = "https://bentoml.github.io/helm-charts" 
-  chart            = "bentoml"
+  chart            = "yatai" # 🔥 FIX: Nama chart yang benar di repositori BentoML adalah yatai
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   
   values = [file("${path.module}/../values/bentoml-values.yaml")]
