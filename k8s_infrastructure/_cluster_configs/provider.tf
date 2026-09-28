@@ -44,11 +44,9 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  # Kosong. Akan membaca dari Environment Variable (KUBECONFIG)
 }
 
 provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
+  # Kosong. Akan membaca dari Environment Variable (KUBECONFIG)
 }

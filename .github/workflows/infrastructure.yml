@@ -11,8 +11,9 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   AWS_REGION: "eu-north-1"
   TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-  TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }} # 🔥 Injeksi kunci SSH dari Secrets
-
+  TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+  KUBECONFIG: /home/runner/.kube/config # 🔥 Kunci elegan pengganti hardcode config_path
+  
 jobs:
   terraform:
     name: Terraform Plan & Apply
