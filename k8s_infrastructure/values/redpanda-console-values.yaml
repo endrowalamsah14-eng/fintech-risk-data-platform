@@ -3,8 +3,8 @@
 # =====================================================================
 config:
   kafka:
-    # Nembak ke broker utama di namespace uds-production
-    brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
+    # 🔥 FIX: Ganti port ke 9093 untuk jalur internal K8s
+    brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
 
 service:
   type: NodePort

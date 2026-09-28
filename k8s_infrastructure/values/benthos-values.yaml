@@ -14,7 +14,8 @@ resources:
 config:
   input:
     kafka_franz:
-      seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
+      # 🔥 FIX: Ganti port ke 9093
+      seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
       topics:
         - "epocket.transactions"
         - "epocket.audit_logs"
@@ -45,7 +46,8 @@ config:
         - check: this._contract_error != null
           output:
             kafka_franz:
-              seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9092"]
+              # 🔥 FIX: Ganti port ke 9093
+              seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
               topic: "dlq.epocket_errors"
 
         # JALUR HOT OPERATIONAL: Transactions -> Redis K8s
@@ -63,7 +65,8 @@ config:
             aws_s3:
               bucket: "uds-enterprise-datalake-2026"
               region: "eu-north-1"
-              path: 'audit_logs/date=${! timestamp("2006-01-02") }/${! uuid_v4() }.json'
+              # 🔥 FIX: Gunakan format interpolasi waktu Bloblang yang valid agar linter tidak meledak
+              path: 'audit_logs/date=${! now().ts_format("2006-01-02") }/${! uuid_v4() }.json'
               max_in_flight: 64
               batching:
                 count: 500

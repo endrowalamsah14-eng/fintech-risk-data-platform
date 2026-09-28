@@ -1,6 +1,14 @@
 # =====================================================================
 # BENTOML SERVING VALUES (XGBOOST FRAUD DETECTION)
 # =====================================================================
+# 🔥 FIX: Nyalakan PostgreSQL bawaan agar Yatai tidak CrashLoopBackOff
+postgresql:
+  enabled: true
+  auth:
+    username: yatai
+    password: yatai_secret_password
+    database: yatai
+
 deployment:
   replicaCount: 1
   resources:
