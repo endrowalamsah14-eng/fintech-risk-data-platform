@@ -6,6 +6,11 @@ variable "ssh_public_key" {
 resource "hcloud_ssh_key" "k8s_admin" {
   name       = "k8s_admin_key"
   public_key = var.ssh_public_key
+
+  # Sabuk pengaman 1: Abaikan perbedaan spasi/newline dari GitHub Secrets
+  lifecycle {
+    ignore_changes = [public_key]
+  }
 }
 
 resource "hcloud_server" "k8s_production" {
@@ -71,13 +76,13 @@ resource "hcloud_server" "k8s_production" {
     kubectl taint nodes --all node-role.kubernetes.io/control-plane-
   EOF
 
-  lifecycle {
+lifecycle {
     ignore_changes = [
       user_data,
+      ssh_keys, # Sabuk pengaman 2: Jangan hancurkan server karena urusan SSH
     ]
   }
-}
-
+  
 output "k8s_public_ip" {
   description = "Public IP of the K8s Production Node"
   value       = hcloud_server.k8s_production.ipv4_address
