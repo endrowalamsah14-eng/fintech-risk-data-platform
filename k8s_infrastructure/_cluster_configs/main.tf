@@ -1,6 +1,11 @@
+variable "ssh_public_key" {
+  description = "Public SSH key for K8s nodes"
+  type        = string
+}
+
 resource "hcloud_ssh_key" "k8s_admin" {
   name       = "k8s_admin_key"
-  public_key = file("~/.ssh/id_rsa_k8s.pub")
+  public_key = var.ssh_public_key
 }
 
 resource "hcloud_server" "k8s_production" {
