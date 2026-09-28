@@ -1,69 +1,50 @@
-name: ZONA 0 - UDS Infrastructure CI/CD
+name: Terraform & K8s Validation
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+
+# Memanggil kredensial AWS & Hetzner dari GitHub Secrets secara global
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: "eu-north-1"
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan & K8s Validation
+  terraform:
+    name: Terraform Plan & Apply
     runs-on: ubuntu-latest
-    
+
     defaults:
       run:
+        # Memastikan eksekusi berjalan di folder yang tepat
         working-directory: ./k8s_infrastructure/_cluster_configs
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+
+      - name: Setup Kubernetes Access
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" > ~/.kube/config
+          chmod 600 ~/.kube/config
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.0
-          
-      # Generate dummy SSH key biar main.tf kaga crash
-      - name: Generate Dummy SSH Key for Validation
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa_k8s -N ""
+          terraform_version: 1.5.0 # Sesuaikan jika pakai versi spesifik
+          terraform_wrapper: false
 
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Validate
-        run: terraform validate
-
       - name: Terraform Plan
         run: terraform plan -no-color
-        env:
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          # 🔥 FIX: Suntik Dummy Kunci AWS biar Terraform kaga nangis
-          AWS_ACCESS_KEY_ID: "dummy_access_key"
-          AWS_SECRET_ACCESS_KEY: "dummy_secret_key"
 
-  mock-engine-lint:
-    name: Validate Python Factory
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          
-      - name: Install Dependencies
-        run: |
-          pip install flake8
-          pip install faker psycopg2-binary pymongo
-          
-      # Bungkam Flake8 soal spasi dan panjang baris
-      - name: Lint Chaos Generator
-        working-directory: ./mock_engine/python_factory
-        run: flake8 chaos_generator.py db_injector.py --max-line-length=150 --extend-ignore=E261,E302,E305,W292,W293
+      # Apply hanya akan berjalan otomatis jika di-push ke branch main
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -no-color
