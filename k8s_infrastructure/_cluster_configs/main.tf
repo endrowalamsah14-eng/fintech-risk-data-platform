@@ -7,20 +7,18 @@ resource "hcloud_ssh_key" "k8s_admin" {
   name       = "k8s_admin_key"
   public_key = var.ssh_public_key
 
-  # Sabuk pengaman 1: Abaikan perbedaan spasi/newline dari GitHub Secrets
   lifecycle {
     ignore_changes = [public_key]
   }
 }
 
 resource "hcloud_server" "k8s_production" {
-  name        = "uds-k8s-prod" # 🔥 Rebranding
+  name        = "uds-k8s-prod"
   image       = "ubuntu-24.04"
-  server_type = "cpx42" # 8 vCPU, 16GB RAM
+  server_type = "cpx42"
   location    = "nbg1"
   ssh_keys    = [hcloud_ssh_key.k8s_admin.id]
 
-  # Cloud-Init: Installation of Kubeadm, Kubelet, Kubectl, and Containerd
   user_data = <<-EOF
     #!/bin/bash
     set -e
@@ -76,13 +74,14 @@ resource "hcloud_server" "k8s_production" {
     kubectl taint nodes --all node-role.kubernetes.io/control-plane-
   EOF
 
-lifecycle {
+  lifecycle {
     ignore_changes = [
       user_data,
-      ssh_keys, # Sabuk pengaman 2: Jangan hancurkan server karena urusan SSH
+      ssh_keys,
     ]
   }
-  
+}
+
 output "k8s_public_ip" {
   description = "Public IP of the K8s Production Node"
   value       = hcloud_server.k8s_production.ipv4_address
