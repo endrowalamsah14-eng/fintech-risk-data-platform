@@ -1,4 +1,11 @@
 terraform {
+  # 🔥 Pindah memori Terraform ke AWS S3 (Remote State)
+  backend "s3" {
+    bucket = "uds-enterprise-datalake-2026"
+    key    = "state/terraform.tfstate"
+    region = "eu-north-1"
+  }
+
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
@@ -37,12 +44,9 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  # IP localhost sudah dibuang, dikembalikan ke standar Enterprise
-  config_path = "~/.kube/config"
+  # Dibiarkan kosong, otomatis mendeteksi ~/.kube/config
 }
 
 provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
+  # Dibiarkan kosong, otomatis mendeteksi ~/.kube/config
 }
