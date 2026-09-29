@@ -1,13 +1,17 @@
 # =====================================================================
 # BENTOML SERVING VALUES (XGBOOST FRAUD DETECTION)
 # =====================================================================
-# 🔥 FIX: Nyalakan PostgreSQL bawaan agar Yatai tidak CrashLoopBackOff
 postgresql:
-  enabled: true
-  auth:
-    username: yatai
-    password: yatai_secret_password
-    database: yatai
+  enabled: false # 🔥 FIX: Matikan Postgres bawaan Helm penyebab CrashLoopBackOff
+
+# Arahkan paksa tembak ke DB internal kita
+yatai:
+  database:
+    host: "postgres-metadata.uds-production.svc.cluster.local"
+    port: 5432
+    user: "yatai"
+    password: "yatai_secret_password"
+    database: "yatai"
 
 deployment:
   replicaCount: 1
@@ -20,7 +24,6 @@ deployment:
       memory: 1Gi
 
 runners:
-  # Limit runner XGBoost biar kaga rakus CPU
   resources:
     requests:
       cpu: 250m

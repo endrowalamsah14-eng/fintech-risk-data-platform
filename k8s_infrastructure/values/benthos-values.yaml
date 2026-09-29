@@ -1,5 +1,5 @@
 # =====================================================================
-# BENTHOS VALUES - THE DATA CONTRACT & ROUTER (BLUEPRINT 2.0)
+# BENTHOS VALUES - THE DATA CONTRACT & ROUTER (BLUEPRINT FINAL)
 # =====================================================================
 replicaCount: 1
 
@@ -14,7 +14,6 @@ resources:
 config:
   input:
     kafka_franz:
-      # 🔥 FIX: Ganti port ke 9093
       seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
       topics:
         - "epocket.transactions"
@@ -46,27 +45,16 @@ config:
         - check: this._contract_error != null
           output:
             kafka_franz:
-              # 🔥 FIX: Ganti port ke 9093
               seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
               topic: "dlq.epocket_errors"
 
-        # JALUR HOT OPERATIONAL: Transactions -> Redis K8s
-        - check: meta("kafka_topic") == "epocket.transactions"
-          output:
-            redis_hash:
-              url: "redis://redis-master.uds-production.svc.cluster.local:6379"
-              key: 'trx:${! json("transaction_id") }'
-              walk_metadata: false
-              walk_json_object: true
-
-        # JALUR ENTERPRISE LAKEHOUSE: Audit Logs -> AWS S3 (Iceberg Ready)
-        - check: meta("kafka_topic") == "epocket.audit_logs"
+        # JALUR ENTERPRISE LAKEHOUSE: Semua Data Valid -> AWS S3 (Iceberg Ready)
+        - check: this._contract_error == null
           output:
             aws_s3:
               bucket: "uds-enterprise-datalake-2026"
               region: "eu-north-1"
-              # 🔥 FIX: Gunakan format interpolasi waktu Bloblang yang valid agar linter tidak meledak
-              path: 'audit_logs/date=${! now().ts_format("2006-01-02") }/${! uuid_v4() }.json'
+              path: 'raw_zone/date=${! now().ts_format("2006-01-02") }/${! uuid_v4() }.json'
               max_in_flight: 64
               batching:
                 count: 500
