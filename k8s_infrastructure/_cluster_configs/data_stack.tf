@@ -202,6 +202,7 @@ resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
       }
     }
   }
+  wait_until_bound = false # 🔥 INI OBAT PENAWARNYA, TAMBAHKAN BARIS INI
 }
 
 resource "kubernetes_service" "postgres_metadata_svc" {
