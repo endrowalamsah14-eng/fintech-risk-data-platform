@@ -3,13 +3,14 @@
 # =====================================================================
 backendStore:
   postgres:
-    enabled: true
+    enabled: false # 🔥 FIX: Matikan subchart bawaan yang cacat
+    host: "postgres-metadata.uds-production.svc.cluster.local"
+    port: 5432
     user: "mlflow_admin"
     password: "mlflow_super_secret"
     database: "mlflow_db"
     
 artifactRoot:
-  # Langsung nembak ke AWS S3 bucket lu
   s3:
     enabled: true
     bucket: "uds-enterprise-datalake-2026"
