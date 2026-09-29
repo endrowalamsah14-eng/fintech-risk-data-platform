@@ -13,7 +13,7 @@ spec:
       storage: 5Gi
 
 ---
-# 2. Service (Ini yang dicari-cari sama MLflow)
+# 2. Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -28,7 +28,7 @@ spec:
     app: postgres-metadata
 
 ---
-# 3. ConfigMap (Script sakti buat nge-create DB dan User MLflow)
+# 3. ConfigMap (Script sakti buat nge-create DB dan User ClearML)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,10 +36,10 @@ metadata:
   namespace: uds-production
 data:
   init.sql: |
-    CREATE USER mlflow_admin WITH ENCRYPTED PASSWORD 'mlflow_super_secret';
-    CREATE DATABASE mlflow_db;
-    GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
-    ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
+    CREATE USER clearml_admin WITH ENCRYPTED PASSWORD 'clearml_super_secret';
+    CREATE DATABASE clearml_db;
+    GRANT ALL PRIVILEGES ON DATABASE clearml_db TO clearml_admin;
+    ALTER DATABASE clearml_db OWNER TO clearml_admin;
 
 ---
 # 4. Deployment Postgres 15 Alpine
