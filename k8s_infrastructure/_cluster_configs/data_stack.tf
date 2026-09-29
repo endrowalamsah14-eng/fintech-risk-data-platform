@@ -185,6 +185,130 @@ resource "helm_release" "grafana" {
 # ==============================================================================
 # 7. ML RISK ENGINE & ONLINE STORE (PROD-K8S)
 # ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 7.A. POSTGRES METADATA (FOR MLFLOW & BENTOML)
+# ------------------------------------------------------------------------------
+resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
+  metadata {
+    name      = "postgres-metadata-pvc"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        storage = "5Gi"
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "postgres_metadata_svc" {
+  metadata {
+    name      = "postgres-metadata"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    selector = {
+      app = "postgres-metadata"
+    }
+    port {
+      port        = 5432
+      target_port = 5432
+    }
+    type = "ClusterIP"
+  }
+}
+
+resource "kubernetes_config_map" "postgres_init_script" {
+  metadata {
+    name      = "postgres-init-script"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  data = {
+    "init.sql" = <<-EOT
+      CREATE USER mlflow_admin WITH ENCRYPTED PASSWORD 'mlflow_super_secret';
+      CREATE DATABASE mlflow_db;
+      GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
+      ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
+
+      CREATE USER yatai WITH ENCRYPTED PASSWORD 'yatai_secret_password';
+      CREATE DATABASE yatai;
+      GRANT ALL PRIVILEGES ON DATABASE yatai TO yatai;
+      ALTER DATABASE yatai OWNER TO yatai;
+    EOT
+  }
+}
+
+resource "kubernetes_deployment" "postgres_metadata" {
+  metadata {
+    name      = "postgres-metadata"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "postgres-metadata"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "postgres-metadata"
+        }
+      }
+      spec {
+        volume {
+          name = "pg-data"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.postgres_metadata_pvc.metadata[0].name
+          }
+        }
+        volume {
+          name = "init-scripts"
+          config_map {
+            name = kubernetes_config_map.postgres_init_script.metadata[0].name
+          }
+        }
+        container {
+          name  = "postgres"
+          image = "postgres:15-alpine"
+          port {
+            container_port = 5432
+          }
+          env {
+            name  = "POSTGRES_PASSWORD"
+            value = "super_secret_root_password"
+          }
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+          }
+          volume_mount {
+            name       = "pg-data"
+            mount_path = "/var/lib/postgresql/data"
+          }
+          volume_mount {
+            name       = "init-scripts"
+            mount_path = "/docker-entrypoint-initdb.d"
+          }
+        }
+      }
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 7.B. REDIS, MLFLOW, & BENTOML
+# ------------------------------------------------------------------------------
 resource "helm_release" "redis" {
   name       = "redis"
   repository = "oci://registry-1.docker.io/bitnamicharts" 
@@ -200,19 +324,21 @@ resource "helm_release" "mlflow" {
   repository       = "https://community-charts.github.io/helm-charts"
   chart            = "mlflow"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
+  timeout          = 900 
   
   values = [file("${path.module}/../values/mlflow-values.yaml")]
+  depends_on = [kubernetes_deployment.postgres_metadata] # 🔥 FIX: Kunci dependency DB
 }
 
 resource "helm_release" "bentoml" {
   name             = "bentoml"
   repository       = "https://bentoml.github.io/helm-charts" 
-  chart            = "yatai" # 🔥 FIX: Nama chart yang benar di repositori BentoML adalah yatai
+  chart            = "yatai" 
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
+  timeout          = 900 
   
   values = [file("${path.module}/../values/bentoml-values.yaml")]
+  depends_on = [kubernetes_deployment.postgres_metadata] # 🔥 FIX: Kunci dependency DB
 }
 
 # ==============================================================================

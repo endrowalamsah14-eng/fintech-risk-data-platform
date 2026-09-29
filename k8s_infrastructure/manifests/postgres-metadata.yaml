@@ -71,11 +71,11 @@ spec:
           env:
             - name: POSTGRES_PASSWORD
               value: "super_secret_root_password" # Password root/postgres
-              resources:
-          requests:
+          resources:
+            requests:
               cpu: 100m
               memory: 256Mi
-          limits:
+            limits:
               cpu: 500m
               memory: 512Mi
           volumeMounts:
