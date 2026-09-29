@@ -2,15 +2,12 @@
 # BENTOML SERVING VALUES (XGBOOST FRAUD DETECTION)
 # =====================================================================
 postgresql:
-  enabled: false # 🔥 FIX: Matikan Postgres bawaan Helm penyebab CrashLoopBackOff
-
-# 🔥 FIX: Ganti ke externalPostgresql biar BentoML kaga nyari di localhost
-externalPostgresql:
-  host: "postgres-metadata.uds-production.svc.cluster.local"
-  port: 5432
-  username: "yatai"
-  password: "yatai_secret_password"
-  database: "yatai"
+  enabled: false
+  postgresqlHost: "postgres-metadata.uds-production.svc.cluster.local"
+  postgresqlPort: 5432
+  postgresqlUsername: "yatai"
+  postgresqlPassword: "yatai_secret_password"
+  postgresqlDatabase: "yatai"
 
 deployment:
   replicaCount: 1
