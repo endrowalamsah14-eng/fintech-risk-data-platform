@@ -11,7 +11,7 @@ spec:
     graph:
       name: classifier
       implementation: XGBOOST_SERVER
-      modelUri: s3://uds-enterprise-datalake-2026/clearml-artifacts/xgboost-fraud/
+      modelUri: s3://uds-enterprise-datalake-2026/aim-artifacts/xgboost-fraud/
       envSecretRefName: aws-s3-secret
     componentSpecs:
     - spec:

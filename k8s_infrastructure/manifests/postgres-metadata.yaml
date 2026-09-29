@@ -28,7 +28,7 @@ spec:
     app: postgres-metadata
 
 ---
-# 3. ConfigMap (Script sakti buat nge-create DB dan User ClearML)
+# 3. ConfigMap (Script sakti buat nge-create DB dan User Aim)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,10 +36,10 @@ metadata:
   namespace: uds-production
 data:
   init.sql: |
-    CREATE USER clearml_admin WITH ENCRYPTED PASSWORD 'clearml_super_secret';
-    CREATE DATABASE clearml_db;
-    GRANT ALL PRIVILEGES ON DATABASE clearml_db TO clearml_admin;
-    ALTER DATABASE clearml_db OWNER TO clearml_admin;
+    CREATE USER aim_admin WITH ENCRYPTED PASSWORD 'aim_super_secret';
+    CREATE DATABASE aim_db;
+    GRANT ALL PRIVILEGES ON DATABASE aim_db TO aim_admin;
+    ALTER DATABASE aim_db OWNER TO aim_admin;
 
 ---
 # 4. Deployment Postgres 15 Alpine

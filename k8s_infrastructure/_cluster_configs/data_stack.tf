@@ -217,10 +217,10 @@ resource "kubernetes_config_map" "postgres_init_script" {
   }
   data = {
     "init.sql" = <<-EOT
-      CREATE USER clearml_admin WITH ENCRYPTED PASSWORD 'clearml_super_secret';
-      CREATE DATABASE clearml_db;
-      GRANT ALL PRIVILEGES ON DATABASE clearml_db TO clearml_admin;
-      ALTER DATABASE clearml_db OWNER TO clearml_admin;
+      CREATE USER aim_admin WITH ENCRYPTED PASSWORD 'aim_super_secret';
+      CREATE DATABASE aim_db;
+      GRANT ALL PRIVILEGES ON DATABASE aim_db TO aim_admin;
+      ALTER DATABASE aim_db OWNER TO aim_admin;
     EOT
   }
 }
@@ -291,7 +291,7 @@ resource "kubernetes_deployment" "postgres_metadata" {
 }
 
 # ------------------------------------------------------------------------------
-# 7.B. REDIS, CLEARML, & SELDON CORE
+# 7.B. REDIS, AIM, & SELDON CORE
 # ------------------------------------------------------------------------------
 resource "helm_release" "redis" {
   name       = "redis"
@@ -303,16 +303,16 @@ resource "helm_release" "redis" {
   values = [file("${path.module}/../values/redis-values.yaml")]
 }
 
-# resource "helm_release" "clearml" {
-#   name             = "clearml"
-#   repository       = "https://allegroai.github.io/clearml-helm-charts"
-#   chart            = "clearml"
-#   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-#   timeout          = 900 
-#   
-#   values = [file("${path.module}/../values/clearml-values.yaml")]
-#   depends_on = [kubernetes_deployment.postgres_metadata]
-# }
+resource "helm_release" "aim" {
+  name             = "aim"
+  repository       = "https://community-charts.github.io/helm-charts"
+  chart            = "aim"
+  namespace        = kubernetes_namespace.data_stack.metadata[0].name
+  timeout          = 900 
+  
+  values = [file("${path.module}/../values/aim-values.yaml")]
+  depends_on = [kubernetes_deployment.postgres_metadata]
+}
 
 resource "helm_release" "seldon_core" {
   name             = "seldon-core-operator"
@@ -544,6 +544,25 @@ resource "kubernetes_service" "temporal_ui_svc" {
     port {
       port        = 8080
       target_port = 8080
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 8.H. AIM UI DASHBOARD
+# ------------------------------------------------------------------------------
+resource "kubernetes_service" "aim_ui_svc" {
+  metadata {
+    name      = "aim-ui-dashboard"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    selector = {
+      "app.kubernetes.io/name" = "aim"
+    }
+    port {
+      port        = 43800
+      target_port = 43800
     }
   }
 }
