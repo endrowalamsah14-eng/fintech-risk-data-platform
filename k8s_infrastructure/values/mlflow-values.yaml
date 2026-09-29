@@ -3,7 +3,7 @@
 # =====================================================================
 backendStore:
   postgres:
-    enabled: false # 🔥 FIX: Matikan subchart bawaan yang cacat
+    enabled: false
     host: "postgres-metadata.uds-production.svc.cluster.local"
     port: 5432
     user: "mlflow_admin"
@@ -16,15 +16,19 @@ artifactRoot:
     bucket: "uds-enterprise-datalake-2026"
     path: "mlflow-artifacts"
 
+# 🔥 FIX: Batasi paksa worker Gunicorn biar RAM kaga jebol
+extraEnvVars:
+  - name: GUNICORN_CMD_ARGS
+    value: "--workers=2 --threads=2"
+
 resources:
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 500m
-    memory: 1Gi
+    cpu: 1
+    memory: 2Gi # 🔥 FIX: Tambah kapasitas napas RAM
 
-# 🔥 FIX: Sabar woi K8s! Kasih napas 3 menit buat DB ngeberesin tabelnya
 livenessProbe:
   initialDelaySeconds: 180
   periodSeconds: 10
