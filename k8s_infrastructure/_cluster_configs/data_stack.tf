@@ -109,7 +109,7 @@ resource "helm_release" "benthos" {
   repository       = "https://benthosdev.github.io/charts"
   chart            = "benthos"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 櫨 FIX: Tambah durasi 15 menit agar tidak context deadline exceeded
+  timeout          = 900
   
   values = [file("${path.module}/../values/benthos-values.yaml")]
   depends_on = [helm_release.redpanda]
@@ -135,18 +135,6 @@ resource "helm_release" "starrocks" {
   
   values = [file("${path.module}/../values/starrocks-values.yaml")]
 }
-
-# 櫨 FIX: Repository Helm Feast sudah dihapus/mati (404 Not Found) dari sisi developer. 
-# Daripada pipeline CI/CD lu gagal total, eksekusi ini di-comment sementara.
-# resource "helm_release" "feast" {
-#   name             = "feast"
-#   repository       = "https://feast-dev.github.io/feast-helm-charts"
-#   chart            = "feast"
-#   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-#   
-#   values = [file("${path.module}/../values/feast-values.yaml")]
-#   depends_on = [helm_release.starrocks, helm_release.risingwave]
-# }
 
 # ==============================================================================
 # 5. BUSINESS INTELLIGENCE & VISUALIZATION
@@ -187,7 +175,7 @@ resource "helm_release" "grafana" {
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 7.A. POSTGRES METADATA (FOR MLFLOW)
+# 7.A. POSTGRES METADATA
 # ------------------------------------------------------------------------------
 resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
   metadata {
@@ -202,7 +190,7 @@ resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
       }
     }
   }
-  wait_until_bound = false # 櫨 INI OBAT PENAWARNYA, TAMBAHKAN BARIS INI
+  wait_until_bound = false
 }
 
 resource "kubernetes_service" "postgres_metadata_svc" {
@@ -229,10 +217,10 @@ resource "kubernetes_config_map" "postgres_init_script" {
   }
   data = {
     "init.sql" = <<-EOT
-      CREATE USER mlflow_admin WITH ENCRYPTED PASSWORD 'mlflow_super_secret';
-      CREATE DATABASE mlflow_db;
-      GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
-      ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
+      CREATE USER clearml_admin WITH ENCRYPTED PASSWORD 'clearml_super_secret';
+      CREATE DATABASE clearml_db;
+      GRANT ALL PRIVILEGES ON DATABASE clearml_db TO clearml_admin;
+      ALTER DATABASE clearml_db OWNER TO clearml_admin;
     EOT
   }
 }
@@ -303,7 +291,7 @@ resource "kubernetes_deployment" "postgres_metadata" {
 }
 
 # ------------------------------------------------------------------------------
-# 7.B. REDIS, MLFLOW, & SELDON CORE
+# 7.B. REDIS, CLEARML, & SELDON CORE
 # ------------------------------------------------------------------------------
 resource "helm_release" "redis" {
   name       = "redis"
@@ -315,15 +303,15 @@ resource "helm_release" "redis" {
   values = [file("${path.module}/../values/redis-values.yaml")]
 }
 
-resource "helm_release" "mlflow" {
-  name             = "mlflow"
-  repository       = "https://community-charts.github.io/helm-charts"
-  chart            = "mlflow"
+resource "helm_release" "clearml" {
+  name             = "clearml"
+  repository       = "https://allegroai.github.io/clearml-helm-charts"
+  chart            = "clearml"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
   timeout          = 900 
   
-  values = [file("${path.module}/../values/mlflow-values.yaml")]
-  depends_on = [kubernetes_deployment.postgres_metadata] # 櫨 FIX: Kunci dependency DB
+  values = [file("${path.module}/../values/clearml-values.yaml")]
+  depends_on = [kubernetes_deployment.postgres_metadata]
 }
 
 resource "helm_release" "seldon_core" {
@@ -339,7 +327,7 @@ resource "helm_release" "seldon_core" {
         enabled = false
       }
       istio = {
-        enabled = false # Menonaktifkan Istio agar resource tetap ringan
+        enabled = false
       }
     })
   ]
@@ -349,9 +337,6 @@ resource "helm_release" "seldon_core" {
 # 8. CONSOLES, DASHBOARDS, & CDC WORKERS (ANTI-SUNAT CLUB)
 # ==============================================================================
 
-# ------------------------------------------------------------------------------
-# 8.A. REDISINSIGHT (Redis UI)
-# ------------------------------------------------------------------------------
 resource "kubernetes_deployment" "redisinsight" {
   metadata {
     name      = "redisinsight"
@@ -399,23 +384,17 @@ resource "kubernetes_service" "redisinsight_svc" {
   }
 }
 
-# ------------------------------------------------------------------------------
-# 8.B. REDPANDA CONSOLE
-# ------------------------------------------------------------------------------
 resource "helm_release" "redpanda_console" {
   name             = "redpanda-console"
   repository       = "https://charts.redpanda.com"
   chart            = "console"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 櫨 FIX: Tambah durasi 15 menit
+  timeout          = 900
   
   values = [file("${path.module}/../values/redpanda-console-values.yaml")]
   depends_on = [helm_release.redpanda]
 }
 
-# ------------------------------------------------------------------------------
-# 8.C. RISINGWAVE DASHBOARD
-# ------------------------------------------------------------------------------
 resource "kubernetes_service" "risingwave_dashboard" {
   metadata {
     name      = "risingwave-dashboard"
@@ -434,9 +413,6 @@ resource "kubernetes_service" "risingwave_dashboard" {
   }
 }
 
-# ------------------------------------------------------------------------------
-# 8.D. DEBEZIUM CONNECT (THE WORKER)
-# ------------------------------------------------------------------------------
 resource "kubernetes_deployment" "debezium" {
   metadata {
     name      = "debezium-connect"
@@ -504,9 +480,6 @@ resource "kubernetes_service" "debezium_svc" {
   }
 }
 
-# ------------------------------------------------------------------------------
-# 8.E. DEBEZIUM UI (THE CONSOLE)
-# ------------------------------------------------------------------------------
 resource "kubernetes_deployment" "debezium_ui" {
   metadata {
     name      = "debezium-ui"
@@ -558,9 +531,6 @@ resource "kubernetes_service" "debezium_ui_svc" {
   }
 }
 
-# ------------------------------------------------------------------------------
-# 8.F. TEMPORAL UI (EXPLICIT SERVICE)
-# ------------------------------------------------------------------------------
 resource "kubernetes_service" "temporal_ui_svc" {
   metadata {
     name      = "temporal-ui-dashboard"
@@ -574,25 +544,6 @@ resource "kubernetes_service" "temporal_ui_svc" {
     port {
       port        = 8080
       target_port = 8080
-    }
-  }
-}
-
-# ------------------------------------------------------------------------------
-# 8.G. MLFLOW UI (EXPLICIT SERVICE)
-# ------------------------------------------------------------------------------
-resource "kubernetes_service" "mlflow_ui_svc" {
-  metadata {
-    name      = "mlflow-ui-dashboard"
-    namespace = kubernetes_namespace.data_stack.metadata[0].name
-  }
-  spec {
-    selector = {
-      "app.kubernetes.io/name" = "mlflow"
-    }
-    port {
-      port        = 5000
-      target_port = 5000
     }
   }
 }
