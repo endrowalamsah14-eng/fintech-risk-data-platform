@@ -13,7 +13,7 @@ spec:
       storage: 5Gi
 
 ---
-# 2. Service (Ini yang dicari-cari sama MLflow & BentoML)
+# 2. Service (Ini yang dicari-cari sama MLflow)
 apiVersion: v1
 kind: Service
 metadata:
@@ -28,7 +28,7 @@ spec:
     app: postgres-metadata
 
 ---
-# 3. ConfigMap (Script sakti buat nge-create 2 DB dan User sekaligus)
+# 3. ConfigMap (Script sakti buat nge-create DB dan User MLflow)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -40,11 +40,6 @@ data:
     CREATE DATABASE mlflow_db;
     GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
     ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
-
-    CREATE USER yatai WITH ENCRYPTED PASSWORD 'yatai_secret_password';
-    CREATE DATABASE yatai;
-    GRANT ALL PRIVILEGES ON DATABASE yatai TO yatai;
-    ALTER DATABASE yatai OWNER TO yatai;
 
 ---
 # 4. Deployment Postgres 15 Alpine

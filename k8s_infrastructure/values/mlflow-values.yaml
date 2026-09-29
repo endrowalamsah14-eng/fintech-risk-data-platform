@@ -16,18 +16,16 @@ artifactRoot:
     bucket: "uds-enterprise-datalake-2026"
     path: "mlflow-artifacts"
 
-# 🔥 FIX: Batasi paksa worker Gunicorn biar RAM kaga jebol
 extraEnvVars:
-  - name: GUNICORN_CMD_ARGS
-    value: "--workers=2 --threads=2"
+  GUNICORN_CMD_ARGS: "--workers=2 --threads=2"
 
 resources:
   requests:
-    cpu: 250m
+    cpu: "250m"
     memory: 512Mi
   limits:
-    cpu: 1
-    memory: 2Gi # 🔥 FIX: Tambah kapasitas napas RAM
+    cpu: "1"
+    memory: 2Gi
 
 livenessProbe:
   initialDelaySeconds: 180

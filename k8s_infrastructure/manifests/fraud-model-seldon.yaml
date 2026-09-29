@@ -1,0 +1,26 @@
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  name: fraud-detection-model
+  namespace: uds-production
+spec:
+  protocol: v2
+  predictors:
+  - name: default
+    replicas: 1
+    graph:
+      name: classifier
+      implementation: MLFLOW_SERVER
+      modelUri: s3://uds-enterprise-datalake-2026/mlflow-artifacts/1/xgboost-fraud/
+      envSecretRefName: aws-s3-secret
+    componentSpecs:
+    - spec:
+        containers:
+        - name: classifier
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

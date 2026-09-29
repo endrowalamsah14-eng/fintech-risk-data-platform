@@ -109,7 +109,7 @@ resource "helm_release" "benthos" {
   repository       = "https://benthosdev.github.io/charts"
   chart            = "benthos"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit agar tidak context deadline exceeded
+  timeout          = 900 # 櫨 FIX: Tambah durasi 15 menit agar tidak context deadline exceeded
   
   values = [file("${path.module}/../values/benthos-values.yaml")]
   depends_on = [helm_release.redpanda]
@@ -136,7 +136,7 @@ resource "helm_release" "starrocks" {
   values = [file("${path.module}/../values/starrocks-values.yaml")]
 }
 
-# 🔥 FIX: Repository Helm Feast sudah dihapus/mati (404 Not Found) dari sisi developer. 
+# 櫨 FIX: Repository Helm Feast sudah dihapus/mati (404 Not Found) dari sisi developer. 
 # Daripada pipeline CI/CD lu gagal total, eksekusi ini di-comment sementara.
 # resource "helm_release" "feast" {
 #   name             = "feast"
@@ -187,7 +187,7 @@ resource "helm_release" "grafana" {
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 7.A. POSTGRES METADATA (FOR MLFLOW & BENTOML)
+# 7.A. POSTGRES METADATA (FOR MLFLOW)
 # ------------------------------------------------------------------------------
 resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
   metadata {
@@ -202,7 +202,7 @@ resource "kubernetes_persistent_volume_claim" "postgres_metadata_pvc" {
       }
     }
   }
-  wait_until_bound = false # 🔥 INI OBAT PENAWARNYA, TAMBAHKAN BARIS INI
+  wait_until_bound = false # 櫨 INI OBAT PENAWARNYA, TAMBAHKAN BARIS INI
 }
 
 resource "kubernetes_service" "postgres_metadata_svc" {
@@ -233,11 +233,6 @@ resource "kubernetes_config_map" "postgres_init_script" {
       CREATE DATABASE mlflow_db;
       GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
       ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
-
-      CREATE USER yatai WITH ENCRYPTED PASSWORD 'yatai_secret_password';
-      CREATE DATABASE yatai;
-      GRANT ALL PRIVILEGES ON DATABASE yatai TO yatai;
-      ALTER DATABASE yatai OWNER TO yatai;
     EOT
   }
 }
@@ -308,7 +303,7 @@ resource "kubernetes_deployment" "postgres_metadata" {
 }
 
 # ------------------------------------------------------------------------------
-# 7.B. REDIS, MLFLOW, & BENTOML
+# 7.B. REDIS, MLFLOW, & SELDON CORE
 # ------------------------------------------------------------------------------
 resource "helm_release" "redis" {
   name       = "redis"
@@ -328,18 +323,26 @@ resource "helm_release" "mlflow" {
   timeout          = 900 
   
   values = [file("${path.module}/../values/mlflow-values.yaml")]
-  depends_on = [kubernetes_deployment.postgres_metadata] # 🔥 FIX: Kunci dependency DB
+  depends_on = [kubernetes_deployment.postgres_metadata] # 櫨 FIX: Kunci dependency DB
 }
 
-resource "helm_release" "bentoml" {
-  name             = "bentoml"
-  repository       = "https://bentoml.github.io/helm-charts" 
-  chart            = "yatai" 
-  namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 
-  
-  values = [file("${path.module}/../values/bentoml-values.yaml")]
-  depends_on = [kubernetes_deployment.postgres_metadata] # 🔥 FIX: Kunci dependency DB
+resource "helm_release" "seldon_core" {
+  name             = "seldon-core-operator"
+  repository       = "https://storage.googleapis.com/seldon-charts"
+  chart            = "seldon-core-operator"
+  namespace        = "seldon-system"
+  create_namespace = true
+
+  values = [
+    yamlencode({
+      usageMetrics = {
+        enabled = false
+      }
+      istio = {
+        enabled = false # Menonaktifkan Istio agar resource tetap ringan
+      }
+    })
+  ]
 }
 
 # ==============================================================================
@@ -404,7 +407,7 @@ resource "helm_release" "redpanda_console" {
   repository       = "https://charts.redpanda.com"
   chart            = "console"
   namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 # 🔥 FIX: Tambah durasi 15 menit
+  timeout          = 900 # 櫨 FIX: Tambah durasi 15 menit
   
   values = [file("${path.module}/../values/redpanda-console-values.yaml")]
   depends_on = [helm_release.redpanda]
