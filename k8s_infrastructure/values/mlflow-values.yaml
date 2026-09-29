@@ -23,3 +23,14 @@ resources:
   limits:
     cpu: 500m
     memory: 1Gi
+
+# 🔥 FIX: Sabar woi K8s! Kasih napas 3 menit buat DB ngeberesin tabelnya
+livenessProbe:
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  failureThreshold: 10
+
+readinessProbe:
+  initialDelaySeconds: 180
+  periodSeconds: 10
+  failureThreshold: 10

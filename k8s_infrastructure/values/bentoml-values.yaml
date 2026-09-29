@@ -4,14 +4,13 @@
 postgresql:
   enabled: false # 🔥 FIX: Matikan Postgres bawaan Helm penyebab CrashLoopBackOff
 
-# Arahkan paksa tembak ke DB internal kita
-yatai:
-  database:
-    host: "postgres-metadata.uds-production.svc.cluster.local"
-    port: 5432
-    user: "yatai"
-    password: "yatai_secret_password"
-    database: "yatai"
+# 🔥 FIX: Ganti ke externalPostgresql biar BentoML kaga nyari di localhost
+externalPostgresql:
+  host: "postgres-metadata.uds-production.svc.cluster.local"
+  port: 5432
+  username: "yatai"
+  password: "yatai_secret_password"
+  database: "yatai"
 
 deployment:
   replicaCount: 1
