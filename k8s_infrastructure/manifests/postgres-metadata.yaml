@@ -1,0 +1,85 @@
+---
+# 1. Persistent Volume Claim (Biar data DB kaga amblas pas Pod restart)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-metadata-pvc
+  namespace: uds-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# 2. Service (Ini yang dicari-cari sama MLflow & BentoML)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-metadata
+  namespace: uds-production
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres-metadata
+
+---
+# 3. ConfigMap (Script sakti buat nge-create 2 DB dan User sekaligus)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: uds-production
+data:
+  init.sql: |
+    CREATE USER mlflow_admin WITH ENCRYPTED PASSWORD 'mlflow_super_secret';
+    CREATE DATABASE mlflow_db;
+    GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO mlflow_admin;
+    ALTER DATABASE mlflow_db OWNER TO mlflow_admin;
+
+    CREATE USER yatai WITH ENCRYPTED PASSWORD 'yatai_secret_password';
+    CREATE DATABASE yatai;
+    GRANT ALL PRIVILEGES ON DATABASE yatai TO yatai;
+    ALTER DATABASE yatai OWNER TO yatai;
+
+---
+# 4. Deployment Postgres 15 Alpine
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-metadata
+  namespace: uds-production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-metadata
+  template:
+    metadata:
+      labels:
+        app: postgres-metadata
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_PASSWORD
+              value: "super_secret_root_password" # Password root/postgres
+          volumeMounts:
+            - name: pg-data
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: pg-data
+          persistentVolumeClaim:
+            claimName: postgres-metadata-pvc
+        - name: init-scripts
+          configMap:
+            name: postgres-init-script
