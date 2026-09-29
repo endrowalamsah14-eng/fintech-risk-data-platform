@@ -303,14 +303,75 @@ resource "helm_release" "redis" {
   values = [file("${path.module}/../values/redis-values.yaml")]
 }
 
-resource "helm_release" "aim" {
-  name             = "aim"
-  repository       = "https://community-charts.github.io/helm-charts"
-  chart            = "aim"
-  namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 
-  
-  values = [file("${path.module}/../values/aim-values.yaml")]
+# ------------------------------------------------------------------------------
+# AIM MLOPS (NATIVE K8S DEPLOYMENT - ANTI 404 CLUB)
+# ------------------------------------------------------------------------------
+resource "kubernetes_persistent_volume_claim" "aim_pvc" {
+  metadata {
+    name      = "aim-pvc"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        storage = "5Gi"
+      }
+    }
+  }
+  wait_until_bound = false
+}
+
+resource "kubernetes_deployment" "aim" {
+  metadata {
+    name      = "aim"
+    namespace = kubernetes_namespace.data_stack.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "aim"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "aim"
+        }
+      }
+      spec {
+        volume {
+          name = "aim-data"
+          persistent_volume_claim {
+            claim_name = kubernetes_persistent_volume_claim.aim_pvc.metadata[0].name
+          }
+        }
+        container {
+          name    = "aim"
+          image   = "aimstack/aim:latest"
+          command = ["aim", "server", "--host", "0.0.0.0", "--port", "43800"]
+          port {
+            container_port = 43800
+          }
+          resources {
+            requests = {
+              cpu    = "100m"
+              memory = "256Mi"
+            }
+            limits = {
+              cpu    = "500m"
+              memory = "512Mi"
+            }
+          }
+          volume_mount {
+            name       = "aim-data"
+            mount_path = "/root/.aim"
+          }
+        }
+      }
+    }
+  }
   depends_on = [kubernetes_deployment.postgres_metadata]
 }
 
