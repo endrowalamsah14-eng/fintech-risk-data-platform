@@ -71,6 +71,13 @@ spec:
           env:
             - name: POSTGRES_PASSWORD
               value: "super_secret_root_password" # Password root/postgres
+              resources:
+          requests:
+              cpu: 100m
+              memory: 256Mi
+          limits:
+              cpu: 500m
+              memory: 512Mi
           volumeMounts:
             - name: pg-data
               mountPath: /var/lib/postgresql/data
