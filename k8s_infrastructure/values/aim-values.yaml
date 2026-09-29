@@ -1,0 +1,19 @@
+# =====================================================================
+# AIM MLOPS VALUES (LIGHTWEIGHT TUNE)
+# =====================================================================
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Menyimpan log eksperimen (RocksDB lokal) dan artefak model
+persistence:
+  enabled: true
+  size: 5Gi
+
+service:
+  type: ClusterIP
+  port: 43800
