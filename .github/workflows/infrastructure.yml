@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 # Memanggil kredensial AWS & Hetzner dari GitHub Secrets secara global
 env:
@@ -44,9 +47,9 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -no-color
+        run: terraform plan -no-color -out=tfplan
 
       # Apply hanya akan berjalan otomatis jika di-push ke branch main
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -no-color
+        run: terraform apply -auto-approve -no-color tfplan
