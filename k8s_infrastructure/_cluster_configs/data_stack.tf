@@ -303,16 +303,16 @@ resource "helm_release" "redis" {
   values = [file("${path.module}/../values/redis-values.yaml")]
 }
 
-resource "helm_release" "clearml" {
-  name             = "clearml"
-  repository       = "https://allegroai.github.io/clearml-helm-charts"
-  chart            = "clearml"
-  namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  timeout          = 900 
-  
-  values = [file("${path.module}/../values/clearml-values.yaml")]
-  depends_on = [kubernetes_deployment.postgres_metadata]
-}
+# resource "helm_release" "clearml" {
+#   name             = "clearml"
+#   repository       = "https://allegroai.github.io/clearml-helm-charts"
+#   chart            = "clearml"
+#   namespace        = kubernetes_namespace.data_stack.metadata[0].name
+#   timeout          = 900 
+#   
+#   values = [file("${path.module}/../values/clearml-values.yaml")]
+#   depends_on = [kubernetes_deployment.postgres_metadata]
+# }
 
 resource "helm_release" "seldon_core" {
   name             = "seldon-core-operator"
