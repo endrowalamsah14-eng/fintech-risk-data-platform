@@ -5,18 +5,18 @@ from pymongo import MongoClient
 from chaos_generator import generate_customer, generate_chaotic_transaction
 
 # ==========================================
-# 1. KONFIGURASI KONEKSI
+# 1. KONFIGURASI KONEKSI (DOCKER INTERNAL)
 # ==========================================
 pg_conn = psycopg2.connect(
     dbname="epocket_ledger",
     user="epocket_admin",
     password="epocket_password",
-    host="localhost",
-    port="5431"
+    host="postgres-shard-1",
+    port="5432"
 )
 pg_cursor = pg_conn.cursor()
 
-mongo_client = MongoClient("mongodb://localhost:27017/?directConnection=true")
+mongo_client = MongoClient("mongodb://mongo-node-1:27017/?directConnection=true")
 mongo_db = mongo_client["epocket_state"]
 payment_intents_collection = mongo_db["payment_intents"]
 
