@@ -26,7 +26,7 @@ storage:
 # ⚙️ BIG RED BUTTON MAGIC: AUTOMATED TOPIC PROVISIONING
 # =====================================================================
 post_install_job:
-  enabled: false # <-- Biarkan false dulu sampai broker benar-benar stabil & ZONA 1 nyala
+  enabled: true
   podTemplate:
     spec:
       containers:
@@ -35,15 +35,10 @@ post_install_job:
           command: ["/bin/bash", "-c"]
           args:
             - |
-              export REDPANDA_BROKERS="redpanda-0.redpanda.uds-production.svc.cluster.local:9092"
+              export REDPANDA_BROKERS="redpanda-cluster.redpanda.svc.cluster.local:9093"
               
-              # 1. Topik Utama dari Debezium (Postgres Shards - Ledger ACID)
               rpk topic create epocket.transactions -p 3
-              
-              # 2. Topik Audit dari Debezium (MongoDB Shards - NoSQL State)
               rpk topic create epocket.audit_logs -p 3
-              
-              # 3. Topik Karantina (DLQ) buat tangkepan Benthos
               rpk topic create dlq.epocket_errors -p 1
 
 tls:

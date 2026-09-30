@@ -69,9 +69,11 @@ jobs:
           helm repo update
           # Trik biar kaga error kalau namespace udah ada
           kubectl create namespace redpanda --dry-run=client -o yaml | kubectl apply -f -
-          # Pakai 'upgrade --install' biar aman ditimpa berkali-kali sama CI/CD
+          
+          # 🔥 INJEKSI FILE VALUES KE HELM
           helm upgrade --install redpanda-cluster redpanda/redpanda \
             --namespace redpanda \
+            -f ${GITHUB_WORKSPACE}/k8s_infrastructure/values/redpanda-values.yaml \
             --set statefulset.replicas=1 \
             --set console.enabled=true \
             --set external.enabled=false
@@ -81,7 +83,7 @@ jobs:
         run: |
           kubectl apply -f ${GITHUB_WORKSPACE}/k8s_infrastructure/manifests/
 
-# 3. Tembak Config CDC ke Otak Debezium (API)
+      # 3. Tembak Config CDC ke Otak Debezium (API)
       - name: Deploy Debezium CDC Connectors
         run: |
           echo "Menunggu K8s pod Debezium jalan (cangkangnya)..."
@@ -89,34 +91,18 @@ jobs:
           
           echo "Menunggu mesin Java beneran buka port 8083..."
           for i in {1..24}; do
-            # 1. Bersihin sisa terowongan yang hancur sebelumnya
             pkill kubectl || true
-            
-            # 2. Bangun terowongan baru di background
             kubectl port-forward -n redpanda svc/debezium-connect-svc 8083:8083 &
-            sleep 3 # Kasih napas 3 detik biar terowongannya stabil
-            
-            # 3. Cek apakah Java udah mau nerima tamu
+            sleep 3
             if curl -s http://localhost:8083/ > /dev/null; then
               echo "✅ Pintu API Debezium resmi terbuka!"
               break
             fi
-            
-            echo "⏳ API belum siap. Terowongan runtuh, bikin lagi dalam 5 detik... ($i/24)"
             sleep 5
           done
           
-          # Looping sapu bersih semua file JSON di folder cdc_config
           for config_file in ${GITHUB_WORKSPACE}/k8s_infrastructure/cdc_config/*.json; do
-            echo "🚀 Memproses $config_file..."
-            
-            # Ekstrak nama connector dari file JSON
             CONNECTOR_NAME=$(jq -r '.name' $config_file)
-            
-            # Hapus config lama kalau ada
             curl -s -X DELETE http://localhost:8083/connectors/$CONNECTOR_NAME || true
-            
-            # Tembak peluru config baru ke Debezium
             curl -s -X POST -H "Content-Type: application/json" --data @$config_file http://localhost:8083/connectors
-            echo -e "\n✅ $CONNECTOR_NAME berhasil dikirim!"
           done
