@@ -4,9 +4,17 @@ on:
   push:
     branches:
       - main
+    # 🔥 BLOK ISOLASI: Abaikan perubahan di area Simulator & Dokumentasi
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
   pull_request:
     branches:
       - main
+    # 🔥 BLOK ISOLASI: Abaikan perubahan di area Simulator & Dokumentasi
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
 
 # Memanggil kredensial AWS & Hetzner dari GitHub Secrets secara global
 env:
