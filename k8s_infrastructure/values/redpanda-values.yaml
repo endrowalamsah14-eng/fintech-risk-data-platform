@@ -24,20 +24,7 @@ storage:
 # ⚙️ BIG RED BUTTON MAGIC: AUTOMATED TOPIC PROVISIONING
 # =====================================================================
 post_install_job:
-  enabled: true
-  podTemplate:
-    spec:
-      containers:
-        - name: rpk-topic-builder
-          image: docker.redpanda.com/redpandadata/redpanda:latest
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              export REDPANDA_BROKERS="redpanda-cluster.redpanda.svc.cluster.local:9093"
-              
-              rpk topic create epocket.transactions -p 3
-              rpk topic create epocket.audit_logs -p 3
-              rpk topic create dlq.epocket_errors -p 1
+  enabled: false # 🔥 MATIKAN! KITA PAKAI JALUR KASAR DI CI/CD
 
 tls:
   enabled: false
