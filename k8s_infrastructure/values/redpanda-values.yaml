@@ -5,9 +5,7 @@ statefulset:
   replicas: 1
 
 config:
-  node: {} 
   cluster:
-    developer_mode: true
     auto_create_topics_enabled: false
 
 resources:
