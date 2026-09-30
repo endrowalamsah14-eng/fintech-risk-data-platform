@@ -61,3 +61,22 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -no-color tfplan
+
+# 1. Pastikan Namespace dan Helm Redpanda ter-deploy duluan
+      - name: Deploy Redpanda (Terminal Bus) via Helm
+        run: |
+          helm repo add redpanda https://charts.redpanda.com
+          helm repo update
+          # Trik biar kaga error kalau namespace udah ada
+          kubectl create namespace redpanda --dry-run=client -o yaml | kubectl apply -f -
+          # Pakai 'upgrade --install' biar aman ditimpa berkali-kali sama CI/CD
+          helm upgrade --install redpanda-cluster redpanda/redpanda \
+            --namespace redpanda \
+            --set statefulset.replicas=1 \
+            --set console.enabled=true \
+            --set external.enabled=false
+
+      # 2. Baru deploy manifest pendukung (kayak Debezium)
+      - name: Deploy K8s Manifests (Zona 2)
+        run: |
+          kubectl apply -f k8s_infrastructure/manifests/        
