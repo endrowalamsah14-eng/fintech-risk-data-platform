@@ -76,11 +76,16 @@ jobs:
           echo "Tunggu Redpanda bener-bener melek 100%..."
           kubectl rollout status statefulset/redpanda-cluster -n redpanda --timeout=180s
           
-          echo "Hajar bikin topik pakai kubectl exec..."
+          echo "Hajar bikin topik bisnis (Ledger & Audit)..."
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.transactions -p 3 || true
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.audit_logs -p 3 || true
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create dlq.epocket_errors -p 1 || true
-
+          
+          echo "Hajar bikin topik internal Debezium (WAJIB COMPACTED)..."
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-configs -p 1 -c cleanup.policy=compact || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-offsets -p 1 -c cleanup.policy=compact || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-status -p 1 -c cleanup.policy=compact || true
+          
       # 3. Baru deploy manifest pendukung
       - name: Deploy K8s Manifests (Zona 2)
         run: |
