@@ -56,7 +56,6 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -no-color tfplan
 
-      # 1. Deploy Helm Redpanda (sekarang bakal beres kilat karena hook dimatikan)
       - name: Deploy Redpanda (Terminal Bus) via Helm
         run: |
           helm repo add redpanda https://charts.redpanda.com
@@ -70,7 +69,6 @@ jobs:
             --set console.enabled=true \
             --set external.enabled=false
 
-      # 2. Bikin Topik Langsung Tembus ke Perut Redpanda
       - name: Setup Kafka Topics (Jalur Kasar)
         run: |
           echo "Tunggu Redpanda bener-bener melek 100%..."
@@ -85,32 +83,33 @@ jobs:
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-configs -p 1 -c cleanup.policy=compact || true
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-offsets -p 1 -c cleanup.policy=compact || true
           kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-status -p 1 -c cleanup.policy=compact || true
-          
-      # 3. Baru deploy manifest pendukung
+
       - name: Deploy K8s Manifests (Zona 2)
         run: |
           kubectl apply -f ${GITHUB_WORKSPACE}/k8s_infrastructure/manifests/
 
-      # 4. Tembak Config CDC ke Otak Debezium (API)
-      - name: Deploy Debezium CDC Connectors
+      - name: Deploy Debezium CDC Connectors (Bulletproof)
         run: |
           echo "Menunggu K8s pod Debezium jalan (cangkangnya)..."
           kubectl rollout status deployment/debezium-connect -n redpanda --timeout=180s
           
-          echo "Menunggu mesin Java beneran buka port 8083..."
-          for i in {1..24}; do
+          echo "Menunggu mesin Java beneran buka port 8083 (Sabar, butuh ~3 menit)..."
+          # Kita naikin limit looping jadi 60 (maksimal 5 menit nungguin Java panas)
+          for i in {1..60}; do
             pkill kubectl || true
             kubectl port-forward -n redpanda svc/debezium-connect-svc 8083:8083 &
-            sleep 3
-            if curl -s http://localhost:8083/ > /dev/null; then
-              echo "✅ Pintu API Debezium resmi terbuka!"
+            sleep 5
+            # Cek apakah endpoint konektor udah ngerespon HTTP 200
+            if curl -s http://localhost:8083/connectors > /dev/null; then
+              echo "✅ Pintu API Debezium resmi terbuka dan stabil!"
               break
             fi
-            sleep 5
           done
           
+          echo "Menyuntikkan konfigurasi CDC..."
           for config_file in ${GITHUB_WORKSPACE}/k8s_infrastructure/cdc_config/*.json; do
             CONNECTOR_NAME=$(jq -r '.name' $config_file)
             curl -s -X DELETE http://localhost:8083/connectors/$CONNECTOR_NAME || true
             curl -s -X POST -H "Content-Type: application/json" --data @$config_file http://localhost:8083/connectors
+            echo "✅ $CONNECTOR_NAME tersuntik!"
           done
