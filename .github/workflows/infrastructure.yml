@@ -80,3 +80,25 @@ jobs:
       - name: Deploy K8s Manifests (Zona 2)
         run: |
           kubectl apply -f ${GITHUB_WORKSPACE}/k8s_infrastructure/manifests/
+
+# 3. Tembak Config CDC ke Otak Debezium (API)
+      - name: Deploy Debezium CDC Connectors
+        run: |
+          echo "Buka terowongan API ke dalam K8s..."
+          kubectl port-forward -n redpanda svc/debezium-connect-svc 8083:8083 &
+          sleep 10 # Kasih waktu 10 detik biar terowongannya stabil
+          
+          # Looping sapu bersih semua file JSON di folder cdc_config
+          for config_file in ${GITHUB_WORKSPACE}/k8s_infrastructure/cdc_config/*.json; do
+            echo "🚀 Memproses $config_file..."
+            
+            # Ekstrak nama connector dari file JSON (GitHub Runner Ubuntu udah ada jq)
+            CONNECTOR_NAME=$(jq -r '.name' $config_file)
+            
+            # Hapus config lama kalau ada (biar kaga error '409 Conflict' kalau lu update file)
+            curl -s -X DELETE http://localhost:8083/connectors/$CONNECTOR_NAME || true
+            
+            # Tembak peluru config baru ke Debezium
+            curl -s -X POST -H "Content-Type: application/json" --data @$config_file http://localhost:8083/connectors
+            echo -e "\n✅ $CONNECTOR_NAME berhasil dikirim!"
+          done          

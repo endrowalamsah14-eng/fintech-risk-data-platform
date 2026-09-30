@@ -1,0 +1,14 @@
+{
+  "name": "epocket-mongo-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "mongodb.connection.string": "mongodb://2.28.224.16:27017,2.28.224.16:27018,2.28.224.16:27019/?replicaSet=epocket-rs",
+    "topic.prefix": "mongo-state",
+    "database.include.list": "epocket_state",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "capture.mode": "change_streams_update_full"
+  }
+}

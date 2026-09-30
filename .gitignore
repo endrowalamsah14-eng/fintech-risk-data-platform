@@ -13,7 +13,7 @@ groenery-datalake/
 *.parquet
 *.json
 # KECUALIKAN config Debezium kita biar tetep ke-track sama Git!
-!cdc_config/debezium-config.json
+!k8s_infrastructure/cdc_config/*.json
 
 # Blokir file arsip raksasa (kayak redis-latest.tar)
 *.tar
