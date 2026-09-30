@@ -79,4 +79,4 @@ jobs:
       # 2. Baru deploy manifest pendukung (kayak Debezium)
       - name: Deploy K8s Manifests (Zona 2)
         run: |
-          kubectl apply -f k8s_infrastructure/manifests/        
+          kubectl apply -f ${GITHUB_WORKSPACE}/k8s_infrastructure/manifests/
