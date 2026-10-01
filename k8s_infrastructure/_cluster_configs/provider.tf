@@ -4,17 +4,13 @@
 terraform {
   backend "s3" {
     bucket = "uds-enterprise-datalake-2026"
-    key    = "state/terraform.tfstate"
+    key    = "v3.0/terraform.tfstate"
     region = "eu-north-1"
   }
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    google = {
-      source  = "hashicorp/google"
       version = "~> 5.0"
     }
     kubernetes = {
@@ -28,21 +24,30 @@ terraform {
   }
 }
 
-# AWS Provider (Compute & EKS)
 provider "aws" {
   region                      = "eu-north-1" 
   skip_credentials_validation = true
   skip_metadata_api_check     = true
 }
 
-# GCP Provider (Storage & BigQuery)
-# NOTE: Replace 'your-gcp-project-id' with your actual GCP Project ID
-provider "google" {
-  project = "your-gcp-project-id"
-  region  = "asia-southeast1"
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+  }
 }
 
-# K8s & Helm Providers (Will authenticate to EKS once provisioned)
-provider "kubernetes" {}
-
-provider "helm" {}
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    }
+  }
+}

@@ -2,7 +2,6 @@
 # ZONE 1: TRANSACTIONAL TIER (YUGABYTEDB SIMULATOR)
 # ==============================================================================
 
-# 1. Security Group for YugabyteDB EC2
 resource "aws_security_group" "simulator_sg" {
   name        = "yugabyte-simulator-sg"
   description = "Allow inbound traffic for YugabyteDB and Native CDC"
@@ -13,7 +12,7 @@ resource "aws_security_group" "simulator_sg" {
     from_port   = 5433
     to_port     = 5433
     protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block] # Only accessible from EKS VPC
+    cidr_blocks = [module.vpc.vpc_cidr_block]
   }
 
   ingress {
@@ -32,9 +31,8 @@ resource "aws_security_group" "simulator_sg" {
   }
 }
 
-# 2. Provision EC2 Spot Instance for Cluster-in-a-Box
 resource "aws_instance" "yugabyte_simulator" {
-  ami           = "ami-0eb260c4d5475b901" # Ubuntu 24.04 LTS (eu-north-1)
+  ami           = "ami-0eb260c4d5475b901" 
   instance_type = "t3.large"
   subnet_id     = module.vpc.public_subnets[0]
   
@@ -44,7 +42,6 @@ resource "aws_instance" "yugabyte_simulator" {
 
   vpc_security_group_ids = [aws_security_group.simulator_sg.id]
 
-  # Install Docker & Docker Compose automatically on boot
   user_data = <<-EOF
               #!/bin/bash
               apt-get update -y
