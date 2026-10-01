@@ -43,12 +43,6 @@ provider "google" {
 }
 
 # K8s & Helm Providers (Will authenticate to EKS once provisioned)
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
+provider "kubernetes" {}
 
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
-  }
-}
+provider "helm" {}
