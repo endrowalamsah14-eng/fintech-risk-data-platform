@@ -21,8 +21,8 @@ spec:
             cpu: "500m"
             memory: "1Gi"
           limits:
-            cpu: "2"       # 🔥 Paru-paru 2 Core
-            memory: "4Gi"  # 🔥 Napas lega 4 GB RAM anti OOMKilled
+            cpu: "2"
+            memory: "4Gi"
         ports:
         - containerPort: 8083
         env:
@@ -36,6 +36,8 @@ spec:
           value: "debezium-offsets"
         - name: STATUS_STORAGE_TOPIC
           value: "debezium-status"
+        - name: KAFKA_HEAP_OPTS
+          value: "-Xms1G -Xmx3G"
 ---
 apiVersion: v1
 kind: Service

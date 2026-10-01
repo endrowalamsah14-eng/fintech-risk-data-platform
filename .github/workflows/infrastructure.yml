@@ -69,20 +69,23 @@ jobs:
             --set console.enabled=true \
             --set external.enabled=false
 
-      - name: Setup Kafka Topics (Jalur Kasar)
+      - name: Setup Kafka Topics (Jalur Bersih GitOps)
         run: |
-          echo "Tunggu Redpanda bener-bener melek 100%..."
+          echo "Menunggu broker Redpanda siap 100%..."
           kubectl rollout status statefulset/redpanda-cluster -n redpanda --timeout=180s
           
-          echo "Hajar bikin topik bisnis (Ledger & Audit)..."
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.transactions -p 3 || true
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.audit_logs -p 3 || true
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create dlq.epocket_errors -p 1 || true
+          echo "Memberi jeda 15 detik agar TCP Port 9093 benar-benar listen..."
+          sleep 15
           
-          echo "Hajar bikin topik internal Debezium (WAJIB COMPACTED)..."
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-configs -p 1 -c cleanup.policy=compact || true
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-offsets -p 1 -c cleanup.policy=compact || true
-          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-status -p 1 -c cleanup.policy=compact || true
+          echo "Menciptakan topik Ledger & Audit (Partisi 3, Replika 1)..."
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.transactions -p 3 -r 1 || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create epocket.audit_logs -p 3 -r 1 || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create dlq.epocket_errors -p 1 -r 1 || true
+          
+          echo "Menciptakan topik internal Debezium (COMPACTED)..."
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-configs -p 1 -r 1 -c cleanup.policy=compact || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-offsets -p 1 -r 1 -c cleanup.policy=compact || true
+          kubectl exec -n redpanda redpanda-cluster-0 -c redpanda -- rpk topic create debezium-status -p 1 -r 1 -c cleanup.policy=compact || true
 
       - name: Deploy K8s Manifests (Zona 2)
         run: |
@@ -90,18 +93,16 @@ jobs:
 
       - name: Deploy Debezium CDC Connectors (Bulletproof)
         run: |
-          echo "Menunggu K8s pod Debezium jalan (cangkangnya)..."
+          echo "Menunggu K8s pod Debezium jalan..."
           kubectl rollout status deployment/debezium-connect -n redpanda --timeout=180s
           
-          echo "Menunggu mesin Java beneran buka port 8083 (Sabar, butuh ~3 menit)..."
-          # Kita naikin limit looping jadi 60 (maksimal 5 menit nungguin Java panas)
+          echo "Menunggu Java Engine buka port 8083..."
           for i in {1..60}; do
             pkill kubectl || true
             kubectl port-forward -n redpanda svc/debezium-connect-svc 8083:8083 &
             sleep 5
-            # Cek apakah endpoint konektor udah ngerespon HTTP 200
             if curl -s http://localhost:8083/connectors > /dev/null; then
-              echo "✅ Pintu API Debezium resmi terbuka dan stabil!"
+              echo "✅ Pintu API Debezium terbuka!"
               break
             fi
           done

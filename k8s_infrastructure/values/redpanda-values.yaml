@@ -7,6 +7,7 @@ statefulset:
 config:
   cluster:
     auto_create_topics_enabled: false
+    default_topic_replications: 1
 
 resources:
   cpu:
@@ -21,10 +22,10 @@ storage:
     storageClass: "local-path"
 
 # =====================================================================
-# ⚙️ BIG RED BUTTON MAGIC: AUTOMATED TOPIC PROVISIONING
+# ⚙️ AUTOMATED TOPIC PROVISIONING
 # =====================================================================
 post_install_job:
-  enabled: false # 🔥 MATIKAN! KITA PAKAI JALUR KASAR DI CI/CD
+  enabled: false
 
 tls:
   enabled: false
