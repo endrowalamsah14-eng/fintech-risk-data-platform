@@ -20,15 +20,6 @@ resource "helm_release" "redpanda" {
   values           = [file("${path.module}/../values/redpanda-values.yaml")]
 }
 
-resource "helm_release" "redpanda_console" {
-  name             = "redpanda-console"
-  repository       = "https://charts.redpanda.com"
-  chart            = "console"
-  namespace        = kubernetes_namespace.data_stack.metadata[0].name
-  values           = [file("${path.module}/../values/redpanda-console-values.yaml")]
-  depends_on       = [helm_release.redpanda]
-}
-
 # 2.B. Benthos Router
 resource "helm_release" "benthos" {
   name             = "benthos-router"
