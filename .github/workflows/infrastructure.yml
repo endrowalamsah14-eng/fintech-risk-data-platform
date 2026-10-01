@@ -47,9 +47,6 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Terraform Plan
-        run: terraform plan -no-color -out=tfplan
-
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -no-color tfplan
+        run: terraform apply -auto-approve -no-color
