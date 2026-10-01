@@ -5,10 +5,9 @@ statefulset:
   replicas: 1
 
 config:
-  node: {} 
   cluster:
-    developer_mode: true
     auto_create_topics_enabled: false
+    default_topic_replications: 1
 
 resources:
   cpu:
@@ -23,28 +22,10 @@ storage:
     storageClass: "local-path"
 
 # =====================================================================
-# ⚙️ BIG RED BUTTON MAGIC: AUTOMATED TOPIC PROVISIONING
+# ⚙️ AUTOMATED TOPIC PROVISIONING
 # =====================================================================
 post_install_job:
-  enabled: false # <-- Biarkan false dulu sampai broker benar-benar stabil & ZONA 1 nyala
-  podTemplate:
-    spec:
-      containers:
-        - name: rpk-topic-builder
-          image: docker.redpanda.com/redpandadata/redpanda:latest
-          command: ["/bin/bash", "-c"]
-          args:
-            - |
-              export REDPANDA_BROKERS="redpanda-0.redpanda.uds-production.svc.cluster.local:9092"
-              
-              # 1. Topik Utama dari Debezium (Postgres Shards - Ledger ACID)
-              rpk topic create epocket.transactions -p 3
-              
-              # 2. Topik Audit dari Debezium (MongoDB Shards - NoSQL State)
-              rpk topic create epocket.audit_logs -p 3
-              
-              # 3. Topik Karantina (DLQ) buat tangkepan Benthos
-              rpk topic create dlq.epocket_errors -p 1
+  enabled: false
 
 tls:
   enabled: false

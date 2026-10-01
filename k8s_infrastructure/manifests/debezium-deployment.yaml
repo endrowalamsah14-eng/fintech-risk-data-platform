@@ -18,16 +18,15 @@ spec:
         image: quay.io/debezium/connect:latest
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
             cpu: "500m"
             memory: "1Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
         ports:
         - containerPort: 8083
         env:
         - name: BOOTSTRAP_SERVERS
-          # Ini alamat internal K8s menuju terminal Redpanda lu yang tadi
           value: "redpanda-cluster-0.redpanda-cluster.redpanda.svc.cluster.local:9093"
         - name: GROUP_ID
           value: "debezium-cluster"
@@ -37,6 +36,8 @@ spec:
           value: "debezium-offsets"
         - name: STATUS_STORAGE_TOPIC
           value: "debezium-status"
+        - name: KAFKA_HEAP_OPTS
+          value: "-Xms1G -Xmx3G"
 ---
 apiVersion: v1
 kind: Service

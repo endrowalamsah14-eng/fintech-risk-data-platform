@@ -1,0 +1,19 @@
+{
+  "name": "epocket-mongo-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "mongodb.connection.string": "mongodb://2.28.224.16:27017,2.28.224.16:27018,2.28.224.16:27019/?replicaSet=epocket-rs",
+    "topic.prefix": "mongo-state",
+    "database.include.list": "epocket_state",
+    "collection.include.list": "epocket_state.customers,epocket_state.payment_methods,epocket_state.bank_accounts,epocket_state.identities,epocket_state.customer_balances,epocket_state.payment_intents,epocket_state.setup_intents,epocket_state.charges,epocket_state.balance_transactions,epocket_state.payouts,epocket_state.products,epocket_state.prices,epocket_state.subscriptions,epocket_state.invoices,epocket_state.credit_notes,epocket_state.disputes,epocket_state.early_fraud_warnings,epocket_state.reviews,epocket_state.radar_scores,epocket_state.block_rules",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "capture.mode": "change_streams_update_full",
+    "transforms": "route",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+    "transforms.route.replacement": "epocket.audit_logs"
+  }
+}
