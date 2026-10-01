@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  yugabyte-master:
+    image: yugabytedb/yugabyte:2.20.1.3-b3
+    container_name: yugabyte-db
+    command: >
+      bin/yugabyted start 
+      --background=false 
+      --tserver_flags="ysql_enable_logical_replication=true,cdc_wal_retention_time_secs=14400"
+    ports:
+      - "5433:5433"   # Port YSQL
+      - "7000:7000"   # Master UI
+      - "9000:9000"   # TServer UI
+    environment:
+      - YB_ENABLE_CDC=true
+    volumes:
+      - yb-data:/home/yugabyte/yb_data
+    restart: always
+
+  # 🔥 INIT CONTAINER: Otomatis eksekusi schema.sql
+  yugabyte-init:
+    image: yugabytedb/yugabyte:2.20.1.3-b3
+    container_name: yugabyte-init
+    depends_on:
+      - yugabyte-master
+    volumes:
+      # 🔥 FIX: Path sekarang baca file schema.sql di folder yang sama (./)
+      - ./schema.sql:/schema.sql
+    command: >
+      bash -c "
+      echo 'Menunggu Yugabyte Master siap...' &&
+      sleep 20 && 
+      bin/ysqlsh -h yugabyte-master -p 5433 -U yugabyte -f /schema.sql &&
+      echo 'Schema sukses di-inject! Init container selesai.'
+      "
+
+volumes:
+  yb-data:
+    driver: local

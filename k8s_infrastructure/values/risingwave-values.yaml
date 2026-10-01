@@ -1,66 +1,39 @@
 # =====================================================================
-# RISINGWAVE VALUES - REAL-TIME STREAMING DB (HETZNER VPS OPTIMIZED)
+# RISINGWAVE VALUES - REAL-TIME STREAMING DB (AWS EKS OPTIMIZED)
 # =====================================================================
 tags:
   etcd: true
-  minio: true # Embedded MinIO ini dibiarkan khusus HANYA untuk internal state RisingWave
+  minio: true 
   postgresql: true
 
 etcd:
   persistence:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "gp2"
 
 minio:
   persistence:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "gp2"
+    size: 20Gi
 
 postgresql:
   primary:
     persistence:
       enabled: true
-      storageClass: "local-path"
-
-# 🔥 BLOK CONSOLE DIHAPUS: 
-# Udah di-handle mutlak pakai kubernetes_service di data_stack.tf nembak port 5691
+      storageClass: "gp2"
 
 metaNode:
   replicaCount: 1
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: 500m, memory: 1Gi } }
 
 computeNode:
-  replicaCount: 1
-  resources:
-    requests:
-      cpu: 500m
-      memory: 1Gi
-    limits:
-      cpu: 1
-      memory: 2Gi
+  replicaCount: 2 # Real-time muscle
+  resources: { requests: { cpu: 1, memory: 2Gi }, limits: { cpu: 2, memory: 4Gi } }
 
 frontendNode:
   replicaCount: 1
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
-
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: 500m, memory: 1Gi } }
 compactorNode:
   replicaCount: 1
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
+  resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { cpu: 500m, memory: 1Gi } }

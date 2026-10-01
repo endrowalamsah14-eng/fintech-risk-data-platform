@@ -1,9 +1,8 @@
 # =====================================================================
-# STARROCKS VALUES - LAKEHOUSE COMPUTE (HETZNER VPS OPTIMIZED)
+# STARROCKS VALUES - LAKEHOUSE COMPUTE (AWS EKS SPOT OPTIMIZED)
 # =====================================================================
 starrocks:
   starrocksFESpec:
-    # Frontend Node: Manages metadata & query parsing
     replicas: 1
     resources:
       requests:
@@ -12,14 +11,21 @@ starrocks:
       limits:
         cpu: 1
         memory: 2Gi
+    storageSpec:
+      name: fe-meta
+      storageClassName: "gp2"
+      storageSize: 10Gi
 
   starrocksBeSpec:
-    # Backend Node: Executes queries against AWS S3 (Iceberg)
-    replicas: 1
+    replicas: 2 # Scale up compute worker
     resources:
       requests:
-        cpu: 500m
-        memory: 1Gi
-      limits:
         cpu: 1
         memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    storageSpec:
+      name: be-storage
+      storageClassName: "gp2"
+      storageSize: 50Gi

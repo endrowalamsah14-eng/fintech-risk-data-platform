@@ -1,15 +1,15 @@
 # =====================================================================
-# TEMPORAL VALUES - THE CONTROL PLANE (HETZNER VPS OPTIMIZED)
+# TEMPORAL VALUES - THE CONTROL PLANE (AWS EKS OPTIMIZED)
 # =====================================================================
 server:
-  replicaCount: 1
+  replicaCount: 2 # HA on Spot
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 250m
+      cpu: 100m
       memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
   config:
     persistence:
       defaultStore: default
@@ -20,7 +20,6 @@ server:
             pluginName: postgres12
             driverName: postgres12
             databaseName: temporal
-            # 🔥 NAMESPACE UPDATED
             connectAddr: temporal-postgresql.uds-production.svc.cluster.local:5432
             connectProtocol: tcp
             user: temporal
@@ -31,42 +30,18 @@ server:
             pluginName: postgres12
             driverName: postgres12
             databaseName: temporal_visibility
-            # 🔥 NAMESPACE UPDATED
             connectAddr: temporal-postgresql.uds-production.svc.cluster.local:5432
             connectProtocol: tcp
             user: temporal
             password: temporal-dev-password
             manageSchema: true
 
+# Sisanya sama seperti master, hanya RAM/CPU dinaikkan sedikit.
 internal-frontend:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { cpu: 500m, memory: 512Mi } }
 history:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { cpu: 500m, memory: 512Mi } }
 matching:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { cpu: 500m, memory: 512Mi } }
 worker:
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 250m
-      memory: 256Mi
+  resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { cpu: 500m, memory: 512Mi } }

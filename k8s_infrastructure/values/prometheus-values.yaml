@@ -1,5 +1,5 @@
 # ==========================================
-# PROMETHEUS COST-OPS CONFIGURATION
+# PROMETHEUS COST-OPS CONFIGURATION (EKS)
 # ==========================================
 alertmanager:
   enabled: false 
@@ -13,13 +13,13 @@ server:
   
   persistentVolume:
     enabled: true
-    size: 2Gi
-    storageClass: "local-path"
+    size: 10Gi
+    storageClass: "gp2"
 
   resources:
     requests:
-      cpu: 100m
-      memory: 256Mi
+      cpu: 250m
+      memory: 512Mi
     limits:
       cpu: 500m
       memory: 1Gi

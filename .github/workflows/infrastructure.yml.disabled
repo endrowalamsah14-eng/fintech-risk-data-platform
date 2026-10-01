@@ -1,0 +1,72 @@
+name: AWS EKS Terraform Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
+
+env:
+  # GCP Auth (Buat GCS Backend/Storage)
+  GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+  
+  # AWS Auth (Buat EKS & EC2 Spot)
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: "eu-north-1"
+  
+  # Hapus HCLOUD_TOKEN karena kita udah kaga pakai Hetzner
+  KUBECONFIG: /home/runner/.kube/config
+  
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./k8s_infrastructure/_cluster_configs
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Setup AWS CLI (Buat Karpenter & EKS Auth)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      # -------------------------------------------------------------
+      # ⚠️ PENTING: Inisialisasi KOSONG khusus malam ini (Dry Run)
+      # Besok pas deploy beneran, hilangkan flag -backend=false
+      # -------------------------------------------------------------
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+
+      # -------------------------------------------------------------
+      # TERRAFORM APPLY HANYA JALAN SAAT PUSH KE MAIN BRANCH
+      # Dan karena semua Helm + K8s Manifest udah ada di data_stack.tf, 
+      # pipeline cukup berhenti di sini.
+      # -------------------------------------------------------------
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -no-color tfplan

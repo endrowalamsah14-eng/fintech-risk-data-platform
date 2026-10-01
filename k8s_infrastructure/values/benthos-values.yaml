@@ -1,7 +1,11 @@
 # =====================================================================
-# BENTHOS VALUES - THE DATA CONTRACT & ROUTER (BLUEPRINT FINAL)
+# BENTHOS VALUES - THE DATA CONTRACT & ROUTER (FINOPS FINAL)
 # =====================================================================
-replicaCount: 1
+replicaCount: 2 # Scale up for high throughput
+autoscaling:
+  enabled: true # HPA Bawaan Helm chart
+  minReplicas: 2
+  maxReplicas: 5
 
 resources:
   requests:
@@ -16,13 +20,13 @@ config:
     kafka_franz:
       seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
       topics:
-        - "epocket.transactions"
-        - "epocket.audit_logs"
+        # 🔥 FOSIL EPOCKET DIBANTAI: Diganti jadi standar eMarket & Logistik
+        - "emarket.orders"
+        - "emarket.shipments"
       consumer_group: "benthos-router-group"
 
   pipeline:
     processors:
-      # 1. Validasi Skema (Data Contract)
       - mapping: |
           root._contract_error = if this.transaction_id == null {
             "missing_transaction_id"
@@ -31,8 +35,6 @@ config:
           } else {
             deleted()
           }
-      
-      # 2. Penyematan Metadata
       - mapping: |
           root = this
           root.contract_error = this._contract_error
@@ -41,19 +43,17 @@ config:
   output:
     switch:
       cases:
-        # JALUR KARANTINA: Data Cacat -> DLQ Redpanda
         - check: this._contract_error != null
           output:
             kafka_franz:
               seed_brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
-              topic: "dlq.epocket_errors"
+              # 🔥 DLQ EPOCKET DIBANTAI
+              topic: "dlq.emarket_errors"
 
-        # JALUR ENTERPRISE LAKEHOUSE: Semua Data Valid -> AWS S3 (Iceberg Ready)
         - check: this._contract_error == null
           output:
-            aws_s3:
-              bucket: "uds-enterprise-datalake-2026"
-              region: "eu-north-1"
+            gcp_cloud_storage:
+              bucket: "uds-bronze-zone-cdc-archive"
               path: 'raw_zone/date=${! now().ts_format("2006-01-02") }/${! uuid_v4() }.json'
               max_in_flight: 64
               batching:

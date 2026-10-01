@@ -1,13 +1,13 @@
 # ==========================================
-# GRAFANA ENTERPRISE DASHBOARD CONFIGURATION
+# GRAFANA ENTERPRISE DASHBOARD (EKS)
 # ==========================================
 adminPassword: "admin"
 
 persistence:
   enabled: true
   type: pvc
-  storageClassName: "local-path"
-  size: 2Gi
+  storageClassName: "gp2"
+  size: 5Gi
 
 datasources:
   datasources.yaml:
@@ -15,7 +15,6 @@ datasources:
     datasources:
     - name: Prometheus
       type: prometheus
-      # 🔥 NAMESPACE UPDATED: emarkrtz-production -> uds-production
       url: http://prometheus-server.uds-production.svc.cluster.local
       access: proxy
       isDefault: true

@@ -3,18 +3,30 @@ kind: SeldonDeployment
 metadata:
   name: fraud-detection-model
   namespace: uds-production
+  labels:
+    app: fraud-detector
+    finops: "spot-optimized"
 spec:
   protocol: v2
   predictors:
   - name: default
-    replicas: 1
+    replicas: 2
     graph:
       name: classifier
       implementation: XGBOOST_SERVER
-      modelUri: s3://uds-enterprise-datalake-2026/aim-artifacts/xgboost-fraud/
-      envSecretRefName: aws-s3-secret
+      # 🔥 FIX: Pindah ke GCS (Google Cloud Storage)
+      modelUri: gs://uds-bronze-zone-cdc-archive/ml-artifacts/xgboost-fraud/
+      # 🔥 FIX: Ganti nama secret jadi kredensial GCP
+      envSecretRefName: gcp-sa-secret
     componentSpecs:
     - spec:
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                seldon-app: fraud-detection-model
         containers:
         - name: classifier
           resources:

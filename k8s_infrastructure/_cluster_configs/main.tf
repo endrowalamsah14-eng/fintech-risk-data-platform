@@ -1,88 +1,113 @@
-variable "ssh_public_key" {
-  description = "Public SSH key for K8s nodes"
-  type        = string
+# ==============================================================================
+# ZONE 2 & 3: AWS EKS CLUSTER (THE COMPUTE MUSCLE) + KARPENTER FINOPS
+# ==============================================================================
+
+# 1. Network Foundation (VPC for EKS)
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
+
+  name = "emarket-killer-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["eu-north-1a", "eu-north-1b"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+
+  enable_nat_gateway = true
+  single_nat_gateway = true
+  
+  # WAJIB BUAT KARPENTER: Tagging subnet biar Karpenter tau harus naruh mesin di mana
+  public_subnet_tags  = { "kubernetes.io/role/elb" = 1 }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = 1, "karpenter.sh/discovery" = "uds-eks-cluster" }
+
+  tags = { Environment = "Production", Project = "eMarket-BigData" }
 }
 
-resource "hcloud_ssh_key" "k8s_admin" {
-  name       = "k8s_admin_key"
-  public_key = var.ssh_public_key
+# 2. EKS Cluster Provisioning
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
 
-  lifecycle {
-    ignore_changes = [public_key]
+  cluster_name    = "uds-eks-cluster"
+  cluster_version = "1.30"
+
+  vpc_id                   = module.vpc.vpc_id
+  subnet_ids               = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.public_subnets
+
+  enable_cluster_creator_admin_permissions = true
+
+  # NODE GROUP INTI (On-Demand): Khusus buat jalanin Karpenter & CoreDNS biar kaga mati
+  eks_managed_node_groups = {
+    system_core = {
+      instance_types = ["t3.medium"]
+      min_size       = 2
+      max_size       = 3
+      desired_size   = 2
+      capacity_type  = "ON_DEMAND"
+      labels         = { "node-role.kubernetes.io/system" = "true" }
+    }
   }
 }
 
-resource "hcloud_server" "k8s_production" {
-  name        = "uds-k8s-prod"
-  image       = "ubuntu-24.04"
-  server_type = "cpx42"
-  location    = "nbg1"
-  ssh_keys    = [hcloud_ssh_key.k8s_admin.id]
+# ==============================================================================
+# THE FINOPS ENGINE: KARPENTER (AUTO-SCALING SPOT INSTANCES)
+# ==============================================================================
 
-  user_data = <<-EOF
-    #!/bin/bash
-    set -e
+# 3. IAM Roles & SQS Queue for Spot Interruption
+module "karpenter" {
+  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version = "~> 20.0"
 
-    # 1. Preparation of Kernel & Networking for K8s
-    cat <<EOT | tee /etc/modules-load.d/k8s.conf
-    overlay
-    br_netfilter
-    EOT
-    modprobe overlay
-    modprobe br_netfilter
+  cluster_name = module.eks.cluster_name
 
-    cat <<EOT | tee /etc/sysctl.d/k8s.conf
-    net.bridge.bridge-nf-call-iptables  = 1
-    net.bridge.bridge-nf-call-ip6tables = 1
-    net.ipv4.ip_forward                 = 1
-    EOT
-    sysctl --system
+  # Setup IRSA (IAM Roles for Service Accounts)
+  enable_pod_identity             = true
+  create_pod_identity_association = true
 
-    # 2. Container Runtime (Containerd) Installation
-    apt-get update -y
-    apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https
-    mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-    apt-get update -y
-    apt-get install -y containerd.io
-    containerd config default > /etc/containerd/config.toml
-    sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
-    systemctl restart containerd
-    systemctl enable containerd
+  # IAM Node Role buat mesin-mesin Spot yang bakal diciptakan Karpenter
+  create_node_iam_role = true
+  node_iam_role_name   = "karpenter-node-role-${module.eks.cluster_name}"
 
-    # 3. Kubernetes Component Installation (v1.30)
-    curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
-    apt-get update -y
-    apt-get install -y kubelet kubeadm kubectl
-    apt-mark hold kubelet kubeadm kubectl
-
-    # 4. Initialize K8s Control Plane
-    kubeadm init --pod-network-cidr=10.244.0.0/16 --ignore-preflight-errors=NumCPU
-
-    # 5. Kubeconfig Access Configuration
-    mkdir -p /root/.kube
-    cp -i /etc/kubernetes/admin.conf /root/.kube/config
-    chown $(id -u):$(id -g) /root/.kube/config
-
-    # 6. Install Pod Network (Flannel CNI)
-    export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
-
-    # 7. Remove Taint so Production Pods can run on this Node
-    kubectl taint nodes --all node-role.kubernetes.io/control-plane-
-  EOF
-
-  lifecycle {
-    ignore_changes = [
-      user_data,
-      ssh_keys,
-    ]
-  }
+  tags = { Environment = "Production", Project = "eMarket-BigData" }
 }
 
-output "k8s_public_ip" {
-  description = "Public IP of the K8s Production Node"
-  value       = hcloud_server.k8s_production.ipv4_address
+# 4. Install Karpenter via Helm
+resource "helm_release" "karpenter" {
+  namespace        = "kube-system"
+  name             = "karpenter"
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "0.36.0"
+  create_namespace = true
+  wait             = false
+
+  values = [
+    yamlencode({
+      settings = {
+        clusterName       = module.eks.cluster_name
+        interruptionQueue = module.karpenter.queue_name
+      }
+      serviceAccount = {
+        annotations = {
+          "eks.amazonaws.com/role-arn" = module.karpenter.iam_role_arn
+        }
+      }
+      # Karpenter HARUS jalan di Node Group Inti (On-Demand) biar kaga kena interupsi
+      nodeSelector = {
+        "node-role.kubernetes.io/system" = "true"
+      }
+    })
+  ]
+
+  depends_on = [module.eks]
+}
+
+output "eks_cluster_name" {
+  value = module.eks.cluster_name
+}
+
+output "karpenter_sqs_queue" {
+  value = module.karpenter.queue_name
 }

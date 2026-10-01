@@ -1,13 +1,13 @@
 # =====================================================================
-# REDPANDA VALUES - THE MESSAGE BUS (HETZNER VPS OPTIMIZED)
+# REDPANDA VALUES (ENGINE + CONSOLE) - AWS EKS SPOT OPTIMIZED
 # =====================================================================
 statefulset:
-  replicas: 1
+  replicas: 3 # Prod-ready, but we run on Spot
 
 config:
   cluster:
     auto_create_topics_enabled: false
-    default_topic_replications: 1
+    default_topic_replications: 3 # Safe replication
 
 resources:
   cpu:
@@ -19,13 +19,14 @@ resources:
 storage:
   persistentVolume:
     enabled: true
-    storageClass: "local-path"
+    storageClass: "gp2" # 🔥 AWS EBS Default
+    size: 20Gi
 
-# =====================================================================
-# ⚙️ AUTOMATED TOPIC PROVISIONING
-# =====================================================================
-post_install_job:
-  enabled: false
-
-tls:
-  enabled: false
+# 🔥 CONSOLE MERGED HERE!
+console:
+  enabled: true
+  config:
+    kafka:
+      brokers: ["redpanda-0.redpanda.uds-production.svc.cluster.local:9093"]
+  service:
+    type: ClusterIP # Di EKS, NodePort bahaya. Pakai ClusterIP lalu port-forward.

@@ -1,5 +1,5 @@
 # =====================================================================
-# METABASE VALUES - BUSINESS INTELLIGENCE (HETZNER VPS OPTIMIZED)
+# METABASE VALUES - BUSINESS INTELLIGENCE (AWS EKS OPTIMIZED)
 # =====================================================================
 replicaCount: 1
 
@@ -16,6 +16,5 @@ extraEnv:
     value: "-Xmx768m"
 
 service:
-  type: NodePort
+  type: ClusterIP # Better security in AWS VPC
   port: 80
-  nodePort: 30300

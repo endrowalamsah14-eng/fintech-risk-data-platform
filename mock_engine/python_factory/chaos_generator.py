@@ -5,47 +5,57 @@ from datetime import datetime, timezone
 
 fake = Faker()
 
-def generate_customer():
-    return {
-        "id": f"cus_{uuid.uuid4().hex[:16]}",
-        "acct_id": "acct_epocket_main",
-        "email": fake.email(),
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
+# ==========================================
+# MASTER DATA: 100 Toko (Simulasi Multi-Tenant)
+# ==========================================
+STORE_IDS = [str(uuid.uuid4()) for _ in range(100)]
+SULTAN_STORE = STORE_IDS[0] # Toko Sultan (Target 80% Traffic Flash Sale)
+PRODUCT_IDS = {store: [str(uuid.uuid4()) for _ in range(50)] for store in STORE_IDS}
+CUSTOMER_IDS = [str(uuid.uuid4()) for _ in range(1000)] # 1000 Pembeli Loyal
 
-def generate_chaotic_transaction(customer_id):
+def generate_chaotic_order():
     """
-    Menghasilkan 3 jenis anomali untuk menonjolkan fitur ML Risk Engine:
-    1. Normal: Transaksi wajar.
-    2. Card Testing: Nominal super kecil berulang kali (Micro-fraud).
-    3. Account Takeover: Nominal masif tak wajar.
+    Menghasilkan anomali Multi-Tenant Skew:
+    80% transaksi masuk ke Toko Sultan (Flash Sale Bot).
+    20% transaksi masuk ke 99 Toko lainnya secara acak.
     """
-    scenario = random.choices(["normal", "card_testing", "takeover"], weights=[0.8, 0.15, 0.05])[0]
+    # 1. Tentukan Toko (Skew 80/20)
+    store_id = SULTAN_STORE if random.random() < 0.8 else random.choice(STORE_IDS[1:])
     
-    if scenario == "card_testing":
-        amount = random.randint(100, 5000) # Rp 100 - Rp 5.000
-        status = "failed_cvv"
-        risk_score = random.randint(85, 100)
-        risk_level = "critical"
-    elif scenario == "takeover":
-        amount = random.randint(50000000, 250000000) # Rp 50 Juta - Rp 250 Juta
-        status = "requires_review"
-        risk_score = random.randint(75, 95)
-        risk_level = "high"
-    else:
-        amount = random.randint(15000, 1500000) # Rp 15 Ribu - Rp 1.5 Juta
-        status = "succeeded"
-        risk_score = random.randint(0, 20)
-        risk_level = "low"
+    order_id = str(uuid.uuid4())
+    customer_id = random.choice(CUSTOMER_IDS)
+    status = random.choices(["PAID", "PENDING", "FAILED_STOCK_OUT"], weights=[0.85, 0.1, 0.05])[0]
+    
+    # 2. Write Amplification: 1 Order beli 3-5 jenis barang (Order Lines)
+    num_items = random.randint(3, 5)
+    order_lines = []
+    total_amount = 0
+    
+    for _ in range(num_items):
+        line_id = str(uuid.uuid4())
+        product_id = random.choice(PRODUCT_IDS[store_id])
+        qty = random.randint(1, 10)
+        unit_price = random.randint(15000, 250000)
+        subtotal = qty * unit_price
+        total_amount += subtotal
+        
+        order_lines.append({
+            "line_id": line_id,
+            "order_id": order_id,
+            "store_id": store_id,
+            "product_id": product_id,
+            "quantity": qty,
+            "unit_price": unit_price,
+            "subtotal": subtotal
+        })
 
-    payment_intent_id = f"pi_{uuid.uuid4().hex[:16]}"
-    
-    return {
-        "pi_id": payment_intent_id,
+    order = {
+        "order_id": order_id,
+        "store_id": store_id,
         "customer_id": customer_id,
-        "amount": amount,
         "status": status,
-        "risk_score": risk_score,
-        "risk_level": risk_level,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "total_amount": total_amount,
+        "payment_method": random.choice(["E-WALLET", "VIRTUAL_ACCOUNT", "CREDIT_CARD"])
     }
+    
+    return order, order_lines
