@@ -1,0 +1,108 @@
+name: Enterprise AWS EKS & GCP Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'mock_engine/**'
+      - '**.md'
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: "eu-north-1"
+  # TODO: Buka komen baris di bawah ini besok kalau akun GCP lu udah siap!
+  # GOOGLE_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+  
+jobs:
+  # ==========================================
+  # JOB 1: FASE INFRASTRUKTUR (AWS EKS & EC2)
+  # ==========================================
+  phase-1-infrastructure:
+    name: Phase 1 (Infrastructure)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./k8s_infrastructure/_cluster_configs/01-infrastructure
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format & Validate
+        run: |
+          terraform fmt -check
+          terraform validate -no-color
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Terraform Apply (On Merge)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -no-color tfplan
+
+  # ==========================================
+  # JOB 2: FASE DATA STACK (K8S, HELM & GCP)
+  # ==========================================
+  phase-2-data-stack:
+    name: Phase 2 (Data Stack)
+    needs: phase-1-infrastructure # WAJIB NUNGGU FASE 1 SUKSES 100%
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./k8s_infrastructure/_cluster_configs/02-data-stack
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format & Validate
+        run: |
+          terraform fmt -check
+          terraform validate -no-color
+
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Terraform Apply (On Merge)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -no-color tfplan
